@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Painel de Linhas</title>
+
+  <!-- CSS principal -->
+  <link rel="stylesheet" href="assets/css/style.css" />
+
+  <!-- Fonte opcional -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header class="header">
+    <div class="date-time">
+      <h2 id="dayName"></h2>
+      <div class="clock">
+        <span id="hours">13</span>
+        <span class="separator">:</span>
+        <span id="minutes">26</span>
+      </div>
+    </div>
+    <button class="theme-toggle" title="Alternar tema">
+      <svg class="icon moon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M13.589 21.659c-3.873 1.038-8.517-.545-10.98-3.632a1 1 0 0 1 .751-1.623c3.984-.118 6.662-1.485 8.17-4.098 1.51-2.613 1.354-5.616-.535-9.125a1 1 0 0 1 1.03-1.463c3.904.59 7.597 3.82 8.635 7.694 1.43 5.334-1.737 10.818-7.071 12.247z" fill="currentColor"/>
+      </svg>
+    </button>
+  </header>
+
+  <main>
+    <!-- 🔍 Barra de pesquisa -->
+    <section class="search-container">
+      <div class="btn-group">
+        <button class="btn-option active">Linhas</button>
+      </div>
+
+      <form class="search-bar" action="#" method="GET">
+        <div class="floating-input">
+          <input type="text" name="busLine" placeholder="Pesquise uma linha" />
+          <label for="busLine">Linha</label>
+        </div>
+
+        <button class="btn-search" title="Buscar" type="submit">
+          <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+            <path fill-rule="evenodd" clip-rule="evenodd"
+              d="M17.0392 15.6244C18.2714 14.084 19.0082 12.1301 19.0082 10.0041C19.0082 5.03127 14.9769 1 10.0041 1C5.03127 1 1 5.03127 1 10.0041C1 14.9769 5.03127 19.0082 10.0041 19.0082C12.1301 19.0082 14.084 18.2714 15.6244 17.0392L21.2921 22.707C21.6828 23.0977 22.3163 23.0977 22.707 22.707C23.0977 22.3163 23.0977 21.6828 22.707 21.2921L17.0392 15.6244ZM10.0041 17.0173C6.1308 17.0173 2.99087 13.8774 2.99087 10.0041C2.99087 6.1308 6.1308 2.99087 10.0041 2.99087C13.8774 2.99087 17.0173 6.1308 17.0173 10.0041C17.0173 13.8774 13.8774 17.0173 10.0041 17.0173Z">
+            </path>
+          </svg>
+        </button>
+      </form>
+    </section>
+
+    <!-- 🚌 Lista de ônibus -->
+    <section class="bus-list">
+
+  <!-- 🔹 Card de exemplo 1 -->
+  <div class="bus-card">
+    <div class="bus-top">
+      <span class="status-badge">🟡 1 MIN</span>
+      <div class="icons">📶 ❄️ ♿</div>
+    </div>
+
+    <div class="bus-info">
+      <span class="line-number">🚌 206</span>
+      <span class="line-name">— T.I. Barro / T.I. Prazeres (Jordão)</span>
+    </div>
+
+    <div class="bus-times">
+      <span>PRÓXIMOS:</span>
+      <button>5 Min</button>
+      <button>12 Min</button>
+      <button>20 Min</button>
+    </div>
+  </div>
+
+  <!-- 🔹 Card de exemplo 2 -->
+  <div class="bus-card">
+    <div class="bus-top">
+      <span class="status-badge">🟢 AGORA</span>
+      <div class="icons">♿</div>
+    </div>
+
+    <div class="bus-info">
+      <span class="line-number">🚌 153</span>
+      <span class="line-name">— Jordão Alto / T.I. Aeroporto</span>
+    </div>
+
+    <div class="bus-times">
+      <span>PRÓXIMOS:</span>
+      <button>11 Min</button>
+      <button>29 Min</button>
+      <button>35 Min</button>
+    </div>
+  </div>
+
+</section>
+
+  </main>
+
+  <footer class="footer">
+    <p>© 2025 Painel de Linhas — Projeto de estudo</p>
+  </footer>
+
+  <!-- JS -->
+  <script src="assets/js/main.js"></script>
+</body>
+</html>
