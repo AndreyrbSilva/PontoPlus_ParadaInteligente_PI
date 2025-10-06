@@ -47,7 +47,7 @@ body {
    🌙 MODO ESCURO
 ====================================== */
 body.dark-mode {
-  --bg-light: #1e1e1e;
+  --bg-light: #1F1F1F;
   --bg-card: #333;
   --text-color: #f5f5f5;
   --brand-color: #ce4910;
@@ -63,12 +63,15 @@ body.dark-mode {
   align-items: center;
   position: relative;
   padding: 1.5rem 1rem;
-  background: linear-gradient(to bottom, rgb(129, 129, 129) 0%, rgba(200, 200, 200, 0) 100%);
-  transition: background-color 0.6s ease, color 0.6s ease, border-color 0.6s ease;
+  background: #dfdfdf;
+  box-shadow: var(--shadow);
+  transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease;
 }
 
 body.dark-mode .header {
-  background: linear-gradient(to bottom, #333, #22222200);
+  background: #1F1F1F;
+  border-bottom: 1px solid #363636;
+  box-shadow: var(--shadow);
 }
 
 .theme-toggle {
@@ -246,7 +249,7 @@ body.dark-mode .btn-option.active:hover {
   font-size: 20px;
   padding: 18px 15px 6px 15px;
   border-radius: 40px;
-  background: transparent;
+  background: none;
   color: var(--text-color);
 }
 
@@ -267,7 +270,7 @@ body.dark-mode .btn-option.active:hover {
   top: 8px;
   font-size: 12px;
   color: var(--text-color);
-  background: var(--bg-card);
+  background-color: rgba(0, 0, 0, 0);
   padding: 0 4px;
 }
 
@@ -298,7 +301,7 @@ body.dark-mode .btn-option.active:hover {
 ====================================== */
 .bus-list {
   margin-top: 2rem;
-  padding: 0 1.5rem;
+  padding: 0 2rem;
 }
 
 .bus-card {
@@ -321,18 +324,75 @@ body.dark-mode .btn-option.active:hover {
 
 /* 🔹 Status com cantos arredondados e tema adaptável */
 .status-badge {
-  padding: 0.3rem 0.8rem;
-  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.3rem;
+  padding: 0.35rem 0.9rem;
+  border-radius: 10px;
   font-weight: bold;
-  background: var(--bg-header, #333); /* usa variável se existir, senão usa preto escuro */
-  color: var(--text-color, #fff);
+  width: 126px;
+  height: 36px;
+  font-size: 0.9rem;
+  background-color: #c5c5c5; /* tema claro */
+  color: #000;
+  border: 1px solid #d0d0d0;
+  transition: all 0.3s ease;
 }
 
-/* 🔹 Ícones à direita */
-.icons {
-  font-size: 1.1rem;
+/* 🌙 Tema escuro */
+body.dark-mode .status-badge {
+  background-color: #000;
+  color: #fff;
+  border: 1px solid #333;
+}
+
+/* 🔹 Bolinha de status (SVG) */
+.status-dot {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+/* 🔸 Cores do status */
+.status-verde .status-dot circle {
+  fill: #00c853; /* verde - chegando no horário */
+}
+
+.status-amarelo .status-dot circle {
+  fill: #ffeb3b; /* amarelo - meio atrasado */
+}
+
+.status-vermelho .status-dot circle {
+  fill: #f44336; /* vermelho - atrasado */
+}
+
+.status-cinza .status-dot circle {
+  fill: #9e9e9e; /* cinza - longe */
+}
+
+/* 🔹 Container dos ícones (novo) */
+.icon-container {
   display: flex;
-  gap: 0.5rem;
+  align-items: center;
+  gap: 0.6rem;
+  background-color: #e4e4e4;
+  color: #2F2F2F;
+  padding: 0.4rem 0.8rem;
+  border-radius: 15px;
+  border: 1px solid #d0d0d0;
+  transition: all 0.3s ease;
+}
+
+.icon-container .icon {
+  width: 25px;
+  height: 20px;
+  fill: currentColor;
+  flex-shrink: 0;
+}
+
+.icon-container .icon:hover {
+  opacity: 0.8;
 }
 
 /* 🔹 Linha + Nome */
@@ -344,12 +404,34 @@ body.dark-mode .btn-option.active:hover {
   font-size: 1.05rem;
 }
 
+/* 🔸 Caixa com ícone e número da linha */
 .line-number {
-  font-size: 1.2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--line-bg, #2F5BCC);
+  color: var(--line-text, #ffffff);
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-weight: 600;
+  font-size: 1.1rem;
+  min-width: 60px;
+  text-align: center;
+  gap: 4px;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+.line-number svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor; /* herda a cor do texto */
+}
+
+/* 🔹 Nome da linha */
 .line-name {
   opacity: 0.9;
+  font-size: 0.9rem;
+  color: #555;
 }
 
 /* 🔹 PRÓXIMOS tempos */
@@ -376,6 +458,24 @@ body.dark-mode .btn-option.active:hover {
 
 .bus-times button:hover {
   background-color: #e0e0e0;
+}
+
+/* ======================================
+   🌙 Tema escuro - integração com body.dark-mode
+====================================== */
+body.dark-mode .line-number {
+  background-color: #000000; /* fundo preto */
+  color: #ffffff;            /* texto branco */
+}
+
+body.dark-mode .line-name {
+  color: #ccc;
+}
+
+body.dark-mode .icon-container {
+  background-color: #000;
+  color: #fff;
+  border: 1px solid #333;
 }
 
 /* ✅ Responsividade */

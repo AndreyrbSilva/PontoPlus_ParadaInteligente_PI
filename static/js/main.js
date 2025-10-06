@@ -6,12 +6,18 @@ const dias = [
   "Quarta-Feira", "Quinta-Feira", "Sexta-Feira", "Sábado"
 ];
 
-setInterval(() => {
+function atualizarRelogio() {
   const now = new Date();
   document.getElementById("hours").textContent = now.getHours().toString().padStart(2, "0");
   document.getElementById("minutes").textContent = now.getMinutes().toString().padStart(2, "0");
   document.getElementById("dayName").textContent = dias[now.getDay()];
-}, 1000);
+}
+
+// Executa imediatamente ao carregar a página
+atualizarRelogio();
+
+// Continua atualizando a cada segundo
+setInterval(atualizarRelogio, 1000);
 
 // ====================
 // Alternância de tema (modo claro/escuro)
