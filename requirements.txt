@@ -1,3 +1,4 @@
-flask
-flask_Cors
-faker
+Flask
+Flask-Cors
+pymongo
+requests

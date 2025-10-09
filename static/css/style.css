@@ -18,6 +18,9 @@
 }
 
 /* 🔄 Transições Globais */
+/* ======================================
+   🔄 Transições Globais (expandido)
+====================================== */
 body,
 .header,
 .search-bar,
@@ -25,11 +28,20 @@ body,
 .btn-option,
 .clock #hours,
 .clock #minutes,
-.footer {
-  transition: background 0.4s ease, 
-              color 0.6s ease, 
-              box-shadow 0.6s ease, 
-              border-color 0.6s ease;
+.footer,
+.status-badge,
+.line-number,
+.icon-container,
+.bus-times button,
+.bus-times span,
+.bus-extra,
+.line-name {
+  transition: 
+    background-color 0.4s ease,
+    color 0.4s ease,
+    border-color 0.4s ease,
+    box-shadow 0.4s ease,
+    opacity 0.4s ease;
 }
 
 body {
@@ -64,14 +76,14 @@ body.dark-mode {
   position: relative;
   padding: 1.5rem 1rem;
   background: #dfdfdf;
-  box-shadow: var(--shadow);
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.15);
   transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease;
 }
 
 body.dark-mode .header {
   background: #1F1F1F;
   border-bottom: 1px solid #363636;
-  box-shadow: var(--shadow);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
 }
 
 .theme-toggle {
@@ -163,6 +175,7 @@ body.dark-mode .header {
   border-radius: 50px;
   overflow: hidden;
   background: transparent;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
 }
 
 .btn-option {
@@ -311,6 +324,7 @@ body.dark-mode .btn-option.active:hover {
   padding: 1rem;
   margin-bottom: 1rem;
   display: flex;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
   flex-direction: column;
   gap: 0.8rem;
 }
@@ -334,6 +348,7 @@ body.dark-mode .btn-option.active:hover {
   width: 126px;
   height: 36px;
   font-size: 0.9rem;
+  box-shadow: 0 1px 15px rgba(0, 0, 0, 0.15);
   background-color: #c5c5c5; /* tema claro */
   color: #000;
   border: 1px solid #d0d0d0;
@@ -342,8 +357,9 @@ body.dark-mode .btn-option.active:hover {
 
 /* 🌙 Tema escuro */
 body.dark-mode .status-badge {
-  background-color: #000;
+  background-color: #131313;
   color: #fff;
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.15);
   border: 1px solid #333;
 }
 
@@ -380,6 +396,7 @@ body.dark-mode .status-badge {
   color: #2F2F2F;
   padding: 0.4rem 0.8rem;
   border-radius: 15px;
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.15);
   border: 1px solid #d0d0d0;
   transition: all 0.3s ease;
 }
@@ -409,6 +426,7 @@ body.dark-mode .status-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.15);
   background-color: var(--line-bg, #2F5BCC);
   color: var(--line-text, #ffffff);
   border-radius: 8px;
@@ -431,7 +449,7 @@ body.dark-mode .status-badge {
 .line-name {
   opacity: 0.9;
   font-size: 0.9rem;
-  color: #555;
+  color: #1f1f1f;
 }
 
 /* 🔹 PRÓXIMOS tempos */
@@ -448,33 +466,47 @@ body.dark-mode .status-badge {
 }
 
 .bus-times button {
-  border: 1px solid #ccc;
-  background: #f8f8f8;
+  border: 1px solid #a7a7a7;
+  background: #d3d3d3;
   border-radius: 8px;
   padding: 0.3rem 0.6rem;
-  cursor: pointer;
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.15);
   font-size: 0.9rem;
 }
 
-.bus-times button:hover {
-  background-color: #e0e0e0;
+/* ======================================
+   🌙 MODO ESCURO - PRÓXIMOS TEMPOS
+====================================== */
+body.dark-mode .bus-times button {
+  border: 1px solid #1b1b1b;              /* borda discreta */
+  background: #2b2b2b;                 /* fundo escuro suave */
+  color: #f0f0f0;                      /* texto claro */
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.5);
 }
+
+body.dark-mode .bus-times span {
+  color: #ccc;
+  opacity: 0.9;
+}
+
 
 /* ======================================
    🌙 Tema escuro - integração com body.dark-mode
 ====================================== */
 body.dark-mode .line-number {
-  background-color: #000000; /* fundo preto */
-  color: #ffffff;            /* texto branco */
+  background-color: #131313; /* fundo preto */
+  color: #ffffff;  
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);          /* texto branco */
 }
 
 body.dark-mode .line-name {
-  color: #ccc;
+  color: #ffffff;
 }
 
 body.dark-mode .icon-container {
-  background-color: #000;
+  background-color: #131313;
   color: #fff;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
   border: 1px solid #333;
 }
 
@@ -525,4 +557,87 @@ body.dark-mode .bus-extra {
   margin-right: 6px;
   vertical-align: middle;
   fill: currentColor; /* usa a cor do texto, igual aos outros ícones */
+}
+
+.no-results {
+  text-align: center;
+  margin-top: 2rem;     /* distância da barra de pesquisa */
+  font-size: 1.1rem;
+  color: #888;
+  animation: fadeInUp 0.4s ease-out forwards;
+  opacity: 0;
+}
+
+.app-footer {
+  background-color: var(--footer-bg, #f1f1f1);
+  color: var(--footer-text, #333);
+  text-align: center;
+  padding: 1.5rem 1rem;
+  font-size: 0.95rem;
+  border-top: 1px solid #ddd;
+  margin-top: 2rem;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.app-footer a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.footer-version {
+  font-size: 0.8rem;
+  color: #888;
+  margin-top: 1rem; /* <-- espaço extra abaixo do conteúdo */
+}
+
+/* Dark mode */
+body.dark-mode .app-footer {
+  --footer-bg: #1c1c1c;
+  --footer-text: #ccc;
+  border-top: 1px solid #333;
+}
+
+.app-footer i.fa-github {
+  margin-right: 4px;
+  color: #333;
+  transition: color 0.3s;
+}
+
+body.dark-mode .app-footer i.fa-github {
+  color: #ccc;
+}
+
+.app-footer a:hover i.fa-github {
+  color: #000;
+}
+
+
+/* Coloque no seu CSS */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.7s ease-out forwards;
+  opacity: 0; /* Garante que o elemento comece invisível */
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+main {
+  flex: 1; /* seu conteúdo principal deve estar dentro de <main> */
 }
