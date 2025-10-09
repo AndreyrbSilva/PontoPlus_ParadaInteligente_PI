@@ -1,5 +1,4 @@
-flask
+Flask
+Flask-Cors
 pymongo
-requests
-osrm-py
 requests
