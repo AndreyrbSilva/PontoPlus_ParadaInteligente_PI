@@ -170,19 +170,21 @@ real
 
 ## 👨‍💻 Autores / Equipe
 
-Projeto sendo desenvolvido por:
+<table border="0" cellspacing="0" cellpadding="10">
+  <tr>
+    <td align="center" style="border: none; box-shadow: none;">
+      <a href="https://github.com/AndreyrbSilva" target="_blank">
+        <img src="https://github.com/AndreyrbSilva.png" width="100px" alt="Andrey Rodrigo"/><br>
+        <sub><b>Andrey Rodrigo</b></sub>
+      </a>
+    </td>
+    <td align="center" style="border: none; box-shadow: none;">
+      <a href="https://github.com/MatheusDeSouza" target="_blank">
+        <img src="https://github.com/MatheusDeSouza.png" width="100px" alt="Matheus de Souza"/><br>
+        <sub><b>Matheus de Souza</b></sub>
+      </a>
+    </td>
+  </tr>
+</table>
 
-<p align="center">
-  <a href="https://github.com/AndreyrbSilva" style="text-decoration:none;">
-    <img src="https://github.com/AndreyrbSilva.png" width="120px;" alt="Foto de Andrey Rodrigo"/>
-    <br />
-    <sub><b>Andrey Rodrigo</b></sub>
-  </a>
-  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-  <a href="https://github.com/MatheusDeSouza" style="text-decoration:none;">
-    <img src="https://github.com/MatheusDeSouza.png" width="120px;" alt="Foto de Matheus de Souza"/>
-    <br />
-    <sub><b>Matheus de Souza</b></sub>
-  </a>
-</p>
 
