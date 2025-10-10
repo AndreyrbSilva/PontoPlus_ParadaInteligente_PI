@@ -4,7 +4,7 @@ from dataclasses import dataclass
 @dataclass
 class Config:
     """Gerencia as configurações e variáveis de ambiente do projeto."""
-    MONGO_URI: str = os.getenv("MONGO_URI", "mongodb+srv://teste:teste@cluster0.jdyk3bt.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+    MONGO_URI: str = os.getenv("MONGO_URI", "url")
     MONGO_DBNAME: str = "sistema_onibus"
     OSRM_HOST: str = "https://router.project-osrm.org"
     OSRM_TABLE_MAX: int = 95
@@ -20,3 +20,4 @@ class Config:
             OSRM_TABLE_MAX=int(os.getenv("OSRM_TABLE_MAX", "95")),
             ETA_CACHE_TTL=int(os.getenv("ETA_CACHE_TTL", "60")),
         )
+
