@@ -168,8 +168,21 @@ python app.py
 
 real
 
-👨‍💻 Autores / Equipe
+## 👨‍💻 Autores / Equipe
 
 Projeto sendo desenvolvido por:
 
-<p align="center"> <a href="https://github.com/AndreyrbSilva"> <img src="https://github.com/AndreyrbSilva.png" width="120px;" alt="Foto de Andrey Rodrigo"/> <br /> <sub><b>Andrey Rodrigo</b></sub> </a> &nbsp;&nbsp;&nbsp;&nbsp; <a href="https://github.com/MatheusDeSouza"> <img src="https://github.com/MatheusDeSouza.png" width="120px;" alt="Foto de Matheus de Souza"/> <br /> <sub><b>Matheus de Souza</b></sub> </a> </p>
+<p align="center">
+  <a href="https://github.com/AndreyrbSilva" style="text-decoration:none;">
+    <img src="https://github.com/AndreyrbSilva.png" width="120px;" alt="Foto de Andrey Rodrigo"/>
+    <br />
+    <sub><b>Andrey Rodrigo</b></sub>
+  </a>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://github.com/MatheusDeSouza" style="text-decoration:none;">
+    <img src="https://github.com/MatheusDeSouza.png" width="120px;" alt="Foto de Matheus de Souza"/>
+    <br />
+    <sub><b>Matheus de Souza</b></sub>
+  </a>
+</p>
+
