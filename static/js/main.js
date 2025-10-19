@@ -69,34 +69,56 @@ async function carregarOnibus(inicial = false) {
     const onibusList = await res.json();
     allBuses = onibusList;
 
+    // ✅ Renderiza imediatamente os ônibus SEM esperar os ETA’s
+    if (inicial) filterAndRenderBuses("");
+
+    // Depois busca ETA’s de forma assíncrona (sem travar o render)
     const etaPromises = onibusList.map(bus =>
-      fetch(`/api/eta/${bus.onibus_id}`).then(res => res.json())
+      fetch(`/api/eta/${bus.onibus_id}`).then(res => res.json()).catch(() => null)
     );
+
     const etaResults = await Promise.all(etaPromises);
 
     onibusList.forEach((bus, index) => {
-  const etaData = etaResults[index];
-  const tempoMin = parseInt(etaData?.tempo_estimado) || Math.floor(Math.random() * 10) + 2;
+      const etaData = etaResults[index];
+      const tempoMin = parseInt(etaData?.tempo_estimado) || Math.floor(Math.random() * 10) + 2;
 
-  if (busState[bus.onibus_id]) {
-    const atual = busState[bus.onibus_id].tempo;
-    if (tempoMin < atual) busState[bus.onibus_id].tempo = tempoMin;
-  } else {
-    busState[bus.onibus_id] = {
-      tempo: tempoMin,
-      proximos: [tempoMin + 5, tempoMin + 10, tempoMin + 15],
-      dados: bus
-    };
-  }
-});
+      if (busState[bus.onibus_id]) {
+        const atual = busState[bus.onibus_id].tempo;
+        if (tempoMin < atual) busState[bus.onibus_id].tempo = tempoMin;
+      } else {
+        busState[bus.onibus_id] = {
+          tempo: tempoMin,
+          proximos: [tempoMin + 5, tempoMin + 10, tempoMin + 15],
+          dados: bus
+        };
+      }
+    });
+
+    // 🔄 Atualiza a renderização depois que os ETA’s chegam
+    filterAndRenderBuses("");
 
   } catch (err) {
     console.error("Erro ao carregar dados:", err);
-    if (inicial) {
-      busList.innerHTML = "<p>Erro ao carregar os dados.</p>";
-    }
+    if (inicial) busList.innerHTML = "<p>Erro ao carregar os dados.</p>";
   }
 }
+
+document.querySelectorAll(".bus-card").forEach(card => {
+  card.addEventListener("mouseenter", () => {
+    const id = card.dataset.id; // supondo que cada card tenha data-id="301"
+    if (!id) return;
+
+    // evita prefetch duplicado
+    if (document.querySelector(`link[data-prefetched="${id}"]`)) return;
+
+    const link = document.createElement("link");
+    link.rel = "prefetch";
+    link.href = `/onibus/${id}`;
+    link.dataset.prefetched = id;
+    document.head.appendChild(link);
+  });
+});
 
 function renderBusCard(bus, tempoMin) {
   const features = bus.features || {};
@@ -141,6 +163,11 @@ function renderBusCard(bus, tempoMin) {
       ${proximos.map((t) => `<button>${t} Min</button>`).join(" ")}
     </div>
   `;
+
+  // ✅ Redireciona ao clicar no card
+  card.addEventListener("click", () => {
+    window.location.href = `/onibus/${bus.onibus_id}`;
+  });
 
   return card;
 }
