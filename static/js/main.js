@@ -36,22 +36,36 @@ if (savedTheme === 'dark') {
 
 themeToggle.addEventListener('click', () => {
   const icon = themeToggle.querySelector('.icon');
-  icon.classList.remove('fade-in');
-  icon.classList.add('fade-out');
+  
+  // Começa rotação do ícone imediatamente
+  icon.classList.add('spin');
 
-  setTimeout(() => {
-    document.body.classList.toggle('dark-mode');
-    const newTheme = document.body.classList.contains('dark-mode') ? 'dark' : 'light';
-    localStorage.setItem('theme', newTheme);
-  }, 200);
+  // 🔹 Alterna o tema logo de cara
+  document.body.classList.toggle('dark-mode');
+  const newTheme = document.body.classList.contains('dark-mode') ? 'dark' : 'light';
+  localStorage.setItem('theme', newTheme);
 
+  // 🔹 Troca o ícone no meio da rotação pra ficar fluido
   setTimeout(() => {
     themeToggle.innerHTML = isMoon ? sunIcon : moonIcon;
     isMoon = !isMoon;
     const newIcon = themeToggle.querySelector('.icon');
-    newIcon.classList.add('fade-in');
-  }, 600);
+    newIcon.classList.add('spin-reverse');
+  }, 350);
+
+  // 🔹 Limpa classes no final
+  setTimeout(() => {
+    themeToggle.querySelectorAll('.icon').forEach(i => {
+      i.classList.remove('spin', 'spin-reverse');
+    });
+  }, 900);
 });
+
+function getStatusClass(tempo) {
+  if (tempo <= 4) return "status-verde";
+  if (tempo <= 6) return "status-amarelo";
+  return "status-cinza";
+}
 
 // ====================
 // 🔄 Atualização dinâmica dos ônibus com ETA inteligente + Busca integrada
@@ -136,12 +150,14 @@ function renderBusCard(bus, tempoMin) {
     </svg>
   `;
 
+  const statusClass = getStatusClass(tempoMin);
+
   const card = document.createElement("div");
   card.className = "bus-card fade-in-up";
   card.id = bus.onibus_id;
   card.innerHTML = `
     <div class="bus-top">
-      <span class="status-badge status-verde" id="status-${bus.onibus_id}">
+      <span class="status-badge ${statusClass}" id="status-${bus.onibus_id}">
         <svg class="status-dot" viewBox="0 0 16 16">
           <circle cx="8" cy="8" r="8"></circle>
         </svg>
@@ -179,9 +195,10 @@ function atualizarCard(id) {
   const tempo = bus.tempo;
   const badge = document.getElementById(`status-${id}`);
   const proximosDiv = document.getElementById(`prox-${id}`);
-
   if (!badge || !proximosDiv) return;
 
+  const statusClass = getStatusClass(tempo);
+  badge.className = `status-badge ${statusClass}`;
   badge.innerHTML = `
     <svg class="status-dot" viewBox="0 0 16 16">
       <circle cx="8" cy="8" r="8"></circle>

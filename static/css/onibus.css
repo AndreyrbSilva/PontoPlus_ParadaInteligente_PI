@@ -16,10 +16,11 @@ html, body {
 
 /* ==== SIDEBAR ==== */
 .sidebar {
-  width: 360px;
+  width: 400px;
   background: #fff;
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
   display: flex;
+  --dot-center-y: 18px;
   flex-direction: column;
   overflow: hidden;
   padding: 0;
@@ -35,6 +36,7 @@ html, body {
   display: flex;
   align-items: center;
   gap: 8px;
+  height: 35px;
   border-bottom: 1px solid #ddd;
   position: sticky;
   top: 0;
@@ -56,7 +58,6 @@ html, body {
   cursor: pointer;
 }
 
-/* Bloco azul do meio */
 .sidebar-header-mid {
   background: #0d152c;
   color: #fff;
@@ -64,6 +65,8 @@ html, body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  height: 40px;
+  box-shadow: #00000033 0px 4px 6px -1px, #0000001a 0px 2px 4px -1px;
   border-bottom: none; /* tira a linha */
   position: sticky;
   top: 50px; /* exatamente altura do header-top */
@@ -85,13 +88,13 @@ html, body {
 }
 
 .bus-name {
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .sentido-btn {
   background: none;
   border: none;
-  color: #fff;
+  color: hsl(224, 100%, 74%);
   cursor: pointer;
   font-size: 14px;
   display: flex;
@@ -254,4 +257,121 @@ html, body {
   color: #fff !important;
   padding: 0 !important;
   border-radius: 0 !important;
+}
+/* ===== PARADAS ===== */
+.stop-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding-left: 30px;
+  padding-top: 10px;
+  padding-bottom: 10px; 
+  margin-bottom: 0;   
+  cursor: pointer;
+}
+
+/* ===== LINHA ENTRE AS PARADAS ===== */
+.stop-line {
+    position: absolute;
+    left: 15px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #000;
+    z-index: 1;
+    transition: none;
+}
+
+/* A primeira parada não tem linha acima */
+.stop-item:first-child .stop-line {
+    top: 23px;
+    bottom: 0;
+    height: auto;
+}
+
+/* A última parada não tem linha abaixo — trava o tamanho */
+.stop-item:last-child .stop-line {
+    top: 0;
+    height: 23px; /* fixa o comprimento da linha */
+    bottom: auto;
+}
+
+/* --- */
+
+/* ===== BOLINHA ===== */
+/* onibus.css */
+
+/* ===== BOLINHA (ALTERADO) ===== */
+.stop-dot {
+    position: absolute;
+    left: 8px;
+    top: 23px;
+    width: 12px;
+    height: 12px;
+    border: 2px solid #000;
+    border-radius: 50%;
+    background: #fff;
+    z-index: 2;
+    transition: all 0.3s ease;
+}
+
+/* Estado ativo */
+.stop-item.open .stop-dot {
+    background: #000;
+}
+
+/* --- */
+
+/* ===== CONTEÚDO DA PARADA ===== */
+.stop-content {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 10px 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+/* --- */
+
+/* ===== CABEÇALHO ===== */
+.stop-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.stop-title {
+    font-weight: 600;
+    color: #0d152c;
+}
+
+.stop-time {
+    font-size: 13px;
+    color: #2b57d9;
+    font-weight: 500;
+}
+
+/* --- */
+
+/* ===== DETALHES ===== */
+.stop-details {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    margin-top: 5px;
+    transition: all 0.3s ease;
+}
+
+.stop-item.open .stop-details {
+    max-height: 200px;
+    opacity: 1;
+}
+
+/* --- */
+
+/* ===== DESTAQUE QUANDO ABERTO ===== */
+.stop-item.open .stop-content {
+    background: #eef2ff;
+    box-shadow: 0 3px 6px rgba(43, 87, 217, 0.2);
 }
