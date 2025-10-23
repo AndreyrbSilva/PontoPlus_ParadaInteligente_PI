@@ -7,6 +7,25 @@
   box-sizing: border-box;
 }
 
+/* 🚫 Remove o quadrado azul de foco em dispositivos móveis */
+button,
+a,
+input,
+textarea,
+select {
+  -webkit-tap-highlight-color: transparent; 
+  outline: none; 
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid #75747400; 
+  outline-offset: 2px;
+}
+
 :root {
   --brand-color: #a00;
   --brand-dark: #800;
@@ -318,15 +337,32 @@ body.dark-mode .btn-option.active:hover {
 }
 
 .bus-card {
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
   background: var(--bg-card);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   padding: 1rem;
   margin-bottom: 1rem;
   display: flex;
+  cursor: pointer;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
   flex-direction: column;
   gap: 0.8rem;
+}
+
+/* 🚌 Efeito visual ao tocar ou passar o mouse */
+.bus-card:hover,
+.bus-card:active {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.418);
+  background-color: #fafafa;
+}
+
+/* 🌙 Modo escuro */
+body.dark-mode .bus-card:hover,
+body.dark-mode .bus-card:active {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.26);
+  background-color: #2e2e2e;
 }
 
 /* 🔹 Topo com status e ícones */
@@ -611,8 +647,6 @@ body.dark-mode .app-footer i.fa-github {
   color: #000;
 }
 
-
-/* Coloque no seu CSS */
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -626,7 +660,7 @@ body.dark-mode .app-footer i.fa-github {
 
 .fade-in-up {
   animation: fadeInUp 0.7s ease-out forwards;
-  opacity: 0; /* Garante que o elemento comece invisível */
+  opacity: 0;
 }
 
 html, body {
@@ -639,5 +673,44 @@ body {
 }
 
 main {
-  flex: 1; /* seu conteúdo principal deve estar dentro de <main> */
+  flex: 1;
+}
+
+/* ===== 🌙☀️ EFEITO GIRATÓRIO SUAVE (sem blur) ===== */
+.icon.spin {
+  animation: spin 0.4s ease-in-out forwards;
+}
+
+.icon.spin-reverse {
+  animation: spinReverse 0.4s ease-in-out forwards;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: rotate(180deg) scale(1.2);
+    opacity: 0.7;
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes spinReverse {
+  0% {
+    transform: rotate(0deg) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: rotate(-180deg) scale(1.2);
+    opacity: 0.7;
+  }
+  100% {
+    transform: rotate(-360deg) scale(1);
+    opacity: 1;
+  }
 }

@@ -36,22 +36,36 @@ if (savedTheme === 'dark') {
 
 themeToggle.addEventListener('click', () => {
   const icon = themeToggle.querySelector('.icon');
-  icon.classList.remove('fade-in');
-  icon.classList.add('fade-out');
+  
+  // Começa rotação do ícone imediatamente
+  icon.classList.add('spin');
 
-  setTimeout(() => {
-    document.body.classList.toggle('dark-mode');
-    const newTheme = document.body.classList.contains('dark-mode') ? 'dark' : 'light';
-    localStorage.setItem('theme', newTheme);
-  }, 200);
+  // 🔹 Alterna o tema logo de cara
+  document.body.classList.toggle('dark-mode');
+  const newTheme = document.body.classList.contains('dark-mode') ? 'dark' : 'light';
+  localStorage.setItem('theme', newTheme);
 
+  // 🔹 Troca o ícone no meio da rotação pra ficar fluido
   setTimeout(() => {
     themeToggle.innerHTML = isMoon ? sunIcon : moonIcon;
     isMoon = !isMoon;
     const newIcon = themeToggle.querySelector('.icon');
-    newIcon.classList.add('fade-in');
-  }, 600);
+    newIcon.classList.add('spin-reverse');
+  }, 350);
+
+  // 🔹 Limpa classes no final
+  setTimeout(() => {
+    themeToggle.querySelectorAll('.icon').forEach(i => {
+      i.classList.remove('spin', 'spin-reverse');
+    });
+  }, 900);
 });
+
+function getStatusClass(tempo) {
+  if (tempo <= 4) return "status-verde";
+  if (tempo <= 6) return "status-amarelo";
+  return "status-cinza";
+}
 
 // ====================
 // 🔄 Atualização dinâmica dos ônibus com ETA inteligente + Busca integrada
@@ -69,34 +83,56 @@ async function carregarOnibus(inicial = false) {
     const onibusList = await res.json();
     allBuses = onibusList;
 
+    // ✅ Renderiza imediatamente os ônibus SEM esperar os ETA’s
+    if (inicial) filterAndRenderBuses("");
+
+    // Depois busca ETA’s de forma assíncrona (sem travar o render)
     const etaPromises = onibusList.map(bus =>
-      fetch(`/api/eta/${bus.onibus_id}`).then(res => res.json())
+      fetch(`/api/eta/${bus.onibus_id}`).then(res => res.json()).catch(() => null)
     );
+
     const etaResults = await Promise.all(etaPromises);
 
     onibusList.forEach((bus, index) => {
-  const etaData = etaResults[index];
-  const tempoMin = parseInt(etaData?.tempo_estimado) || Math.floor(Math.random() * 10) + 2;
+      const etaData = etaResults[index];
+      const tempoMin = parseInt(etaData?.tempo_estimado) || Math.floor(Math.random() * 10) + 2;
 
-  if (busState[bus.onibus_id]) {
-    const atual = busState[bus.onibus_id].tempo;
-    if (tempoMin < atual) busState[bus.onibus_id].tempo = tempoMin;
-  } else {
-    busState[bus.onibus_id] = {
-      tempo: tempoMin,
-      proximos: [tempoMin + 5, tempoMin + 10, tempoMin + 15],
-      dados: bus
-    };
-  }
-});
+      if (busState[bus.onibus_id]) {
+        const atual = busState[bus.onibus_id].tempo;
+        if (tempoMin < atual) busState[bus.onibus_id].tempo = tempoMin;
+      } else {
+        busState[bus.onibus_id] = {
+          tempo: tempoMin,
+          proximos: [tempoMin + 5, tempoMin + 10, tempoMin + 15],
+          dados: bus
+        };
+      }
+    });
+
+    // 🔄 Atualiza a renderização depois que os ETA’s chegam
+    filterAndRenderBuses("");
 
   } catch (err) {
     console.error("Erro ao carregar dados:", err);
-    if (inicial) {
-      busList.innerHTML = "<p>Erro ao carregar os dados.</p>";
-    }
+    if (inicial) busList.innerHTML = "<p>Erro ao carregar os dados.</p>";
   }
 }
+
+document.querySelectorAll(".bus-card").forEach(card => {
+  card.addEventListener("mouseenter", () => {
+    const id = card.dataset.id; // supondo que cada card tenha data-id="301"
+    if (!id) return;
+
+    // evita prefetch duplicado
+    if (document.querySelector(`link[data-prefetched="${id}"]`)) return;
+
+    const link = document.createElement("link");
+    link.rel = "prefetch";
+    link.href = `/onibus/${id}`;
+    link.dataset.prefetched = id;
+    document.head.appendChild(link);
+  });
+});
 
 function renderBusCard(bus, tempoMin) {
   const features = bus.features || {};
@@ -114,12 +150,14 @@ function renderBusCard(bus, tempoMin) {
     </svg>
   `;
 
+  const statusClass = getStatusClass(tempoMin);
+
   const card = document.createElement("div");
   card.className = "bus-card fade-in-up";
   card.id = bus.onibus_id;
   card.innerHTML = `
     <div class="bus-top">
-      <span class="status-badge status-verde" id="status-${bus.onibus_id}">
+      <span class="status-badge ${statusClass}" id="status-${bus.onibus_id}">
         <svg class="status-dot" viewBox="0 0 16 16">
           <circle cx="8" cy="8" r="8"></circle>
         </svg>
@@ -142,6 +180,11 @@ function renderBusCard(bus, tempoMin) {
     </div>
   `;
 
+  // ✅ Redireciona ao clicar no card
+  card.addEventListener("click", () => {
+    window.location.href = `/onibus/${bus.onibus_id}`;
+  });
+
   return card;
 }
 
@@ -152,9 +195,10 @@ function atualizarCard(id) {
   const tempo = bus.tempo;
   const badge = document.getElementById(`status-${id}`);
   const proximosDiv = document.getElementById(`prox-${id}`);
-
   if (!badge || !proximosDiv) return;
 
+  const statusClass = getStatusClass(tempo);
+  badge.className = `status-badge ${statusClass}`;
   badge.innerHTML = `
     <svg class="status-dot" viewBox="0 0 16 16">
       <circle cx="8" cy="8" r="8"></circle>

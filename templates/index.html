@@ -1,22 +1,32 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <link
-  rel="stylesheet"
-  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
-/>
-
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Painel de Linhas</title>
 
+  <!-- Preload da próxima página -->
+  <link rel="prefetch" href="/onibus/algum_id_exemplo">
+
+  <!-- Preload de scripts e estilos usados no onibus.html -->
+  <link rel="preload" href="{{ url_for('static', filename='css/onibus.css') }}" as="style">
+  <link rel="preload" href="{{ url_for('static', filename='js/onibus.js') }}" as="script">
+  <link rel="preload" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" as="script">
+  <link rel="preload" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" as="style">
+
   <!-- CSS principal -->
-  <link rel="stylesheet" href="static\css\style.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
 
   <!-- Fonte opcional -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600&display=swap" rel="stylesheet">
+
+  <!-- Ícones: Font Awesome (coloque por último) -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+  />
 </head>
 <body>
   <header class="header">
@@ -60,7 +70,6 @@
 
     <!-- 🚌 Lista de ônibus -->
     <section class="bus-list" id="busList"></section>
-</section>
 
   </main>
 
@@ -82,6 +91,6 @@
 
 
   <!-- JS -->
-  <script src="static\js\main.js"></script>
+  <script src="{{ url_for('static', filename='js/main.js') }}"defer></script>
 </body>
 </html>
