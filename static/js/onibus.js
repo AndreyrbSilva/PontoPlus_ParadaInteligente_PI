@@ -207,8 +207,12 @@ async function initMap(paradas) {
       mapa.fitBounds(L.latLngBounds(coords));
 
       // 🧭 Adiciona legenda de cores
-      const legenda = L.control({ position: "bottomleft" });
-      legenda.onAdd = function () {
+      if (window.legendaLayer) {
+      mapa.removeControl(window.legendaLayer);
+      }
+
+      window.legendaLayer = L.control({ position: "bottomleft" });
+      window.legendaLayer.onAdd = function () {
         const div = L.DomUtil.create("div", "info legend");
         div.style.background = "white";
         div.style.padding = "8px";
@@ -226,7 +230,7 @@ async function initMap(paradas) {
         `;
         return div;
       };
-      legenda.addTo(mapa);
+      window.legendaLayer.addTo(mapa);
     } else {
       console.warn("⚠️ Nenhum shape encontrado para a linha", linhaId);
     }

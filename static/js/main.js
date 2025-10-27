@@ -213,20 +213,33 @@ function atualizarCard(id) {
   `;
 }
 
-// Renderiza a lista filtrada
+function normalizeText(str) {
+  return str
+    .normalize("NFD") // separa acentos das letras
+    .replace(/[\u0300-\u036f]/g, "") // remove os acentos
+    .toLowerCase()
+    .trim();
+}
+
 function filterAndRenderBuses(term) {
   busList.innerHTML = "";
 
+  const normalizedTerm = normalizeText(term);
+
   const filtered = allBuses
-    .filter(bus =>
-      bus.linha_nome.toLowerCase().includes(term.toLowerCase())
-    )
+    .filter(bus => {
+      const nome = normalizeText(bus.linha_nome);
+      const numero = normalizeText(bus.linha_id.toString());
+
+      // ✅ busca por nome OU número da linha
+      return nome.includes(normalizedTerm) || numero.includes(normalizedTerm);
+    })
     .map(bus => {
       const estado = busState[bus.onibus_id];
       const tempoMin = estado ? estado.tempo : Math.floor(Math.random() * 10) + 2;
       return { bus, tempoMin };
     })
-    .sort((a, b) => a.tempoMin - b.tempoMin); // 🔹 ordena do menor para o maior tempo
+    .sort((a, b) => a.tempoMin - b.tempoMin);
 
   if (filtered.length === 0) {
     const msg = document.createElement("p");
