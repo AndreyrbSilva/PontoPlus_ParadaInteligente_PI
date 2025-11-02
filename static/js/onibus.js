@@ -1,6 +1,7 @@
 const onibusId = window.location.pathname.split("/").pop();
 let rotaNormal = true;
 let mapa;
+let lightTiles, darkTiles;
 
 fetch(`/api/onibus/${onibusId}`)
   .then(res => res.json())
@@ -127,6 +128,17 @@ themeToggle.addEventListener('click', () => {
   const newTheme = document.body.classList.contains('dark-mode') ? 'dark' : 'light';
   localStorage.setItem('theme', newTheme);
 
+  // alterna tiles
+  if (mapa) {
+    if (newTheme === 'dark') {
+      mapa.removeLayer(lightTiles);
+      darkTiles.addTo(mapa);
+    } else {
+      mapa.removeLayer(darkTiles);
+      lightTiles.addTo(mapa);
+    }
+  }
+  
   setTimeout(() => {
     themeToggle.innerHTML = isMoon ? sunIcon : moonIcon;
     isMoon = !isMoon;
@@ -143,23 +155,57 @@ themeToggle.addEventListener('click', () => {
 
 
 async function initMap(paradas) {
-  const MAPTILER_KEY = "ikdoP1u9s2FX498f4gRI";
+  const MAPTILER_KEY = "WY3jUNR2NAoodGvJ7vnY";
 
+  // Inicializa o mapa apenas uma vez
   if (!mapa) {
-    mapa = L.map("map").setView([-8.05, -34.9], 13);
-    L.tileLayer(
-      `https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${MAPTILER_KEY}`,
-      {
-        tileSize: 512,
-        zoomOffset: -1,
-        attribution: "© OpenStreetMap | © MapTiler",
-      }
-    ).addTo(mapa);
+    mapa = L.map("map", {
+      attributionControl: false // remove o "Leaflet"
+    }).setView([-8.05, -34.9], 13);
+
+    // Cria layers apenas uma vez
+    if (!lightTiles || !darkTiles) {
+      lightTiles = L.tileLayer(
+        `https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${MAPTILER_KEY}`,
+        { tileSize: 512, zoomOffset: -1 }
+      );
+
+      darkTiles = L.tileLayer(
+        `https://api.maptiler.com/maps/topo-v2-dark/{z}/{x}/{y}.png?key=${MAPTILER_KEY}`,
+        { tileSize: 512, zoomOffset: -1 }
+      );
+    }
+
+    // Função para alternar tema
+    function setTheme(theme) {
+      if (mapa.hasLayer(lightTiles)) mapa.removeLayer(lightTiles);
+      if (mapa.hasLayer(darkTiles)) mapa.removeLayer(darkTiles);
+
+      if (theme === "dark") darkTiles.addTo(mapa);
+      else lightTiles.addTo(mapa);
+
+      localStorage.setItem("theme", theme);
+    }
+
+    // Inicializa tema salvo
+    const savedTheme = localStorage.getItem("theme") || "light";
+    setTheme(savedTheme);
+
+    // Botão de troca de tema
+    document.getElementById("toggleTheme")?.addEventListener("click", () => {
+      setTheme(mapa.hasLayer(lightTiles) ? "dark" : "light");
+    });
+
+    // Adiciona créditos manualmente
+    L.control.attribution({ prefix: false }).addTo(mapa);
+    mapa.attributionControl.addAttribution("© OpenStreetMap | © MapTiler");
   }
 
+  // Remove marcadores e rota anteriores
   if (window.marcadoresGroup) mapa.removeLayer(window.marcadoresGroup);
   if (window.rotaLayer) mapa.removeLayer(window.rotaLayer);
 
+  // Adiciona marcadores das paradas
   const marcadores = [];
   paradas.forEach((p) => {
     if (p.localizacao?.coordinates) {
@@ -177,13 +223,15 @@ async function initMap(paradas) {
     window.marcadoresGroup = L.featureGroup(marcadores).addTo(mapa);
   }
 
-try {
-  const linhaId = document.getElementById("linhaNumero").textContent.trim();
-  const resp = await fetch(`/api/linha/L${linhaId}`);
-  const data = await resp.json();
-  const shape = data.linha?.shape || data.shape;
+  // Desenha rota
+  try {
+    const linhaId = document.getElementById("linhaNumero").textContent.trim();
+    const resp = await fetch(`/api/linha/L${linhaId}`);
+    const data = await resp.json();
+    const shape = data.linha?.shape || data.shape;
 
-  if (shape?.coordinates?.length) {
+    if (!shape?.coordinates?.length) return console.warn("Nenhum shape encontrado", linhaId);
+
     const coords = shape.coordinates.map((c) => [c[1], c[0]]);
     const metade = Math.floor(coords.length / 2);
     const coordsIda = coords.slice(0, metade);
@@ -194,21 +242,20 @@ try {
 
     if (!mapa.getPane("shadowPane")) {
       mapa.createPane("shadowPane");
-      mapa.getPane("shadowPane").style.zIndex = 350;
-      mapa.getPane("shadowPane").style.pointerEvents = "none";
+      const pane = mapa.getPane("shadowPane");
+      pane.style.zIndex = 350;
+      pane.style.pointerEvents = "none";
     }
 
-    function makeShadow(latlngs, weight) {
-      return L.polyline(latlngs, {
-        color: "#7d7d7dff",
-        weight: Math.max(2, weight + 7),
-        opacity: 0.13,
-        lineCap: "round",
-        lineJoin: "round",
-        pane: "shadowPane", 
-        interactive: false, 
-      });
-    }
+    const makeShadow = (latlngs, weight) => L.polyline(latlngs, {
+      color: "#7d7d7dff",
+      weight: Math.max(2, weight + 7),
+      opacity: 0.13,
+      lineCap: "round",
+      lineJoin: "round",
+      pane: "shadowPane",
+      interactive: false
+    });
 
     const sombraIda = makeShadow(coordsIda, estiloAtivo.weight);
     const sombraVolta = makeShadow(coordsVolta, estiloInativo.weight);
@@ -220,7 +267,7 @@ try {
       lineJoin: "round",
       lineCap: "round",
       smoothFactor: 2,
-      pane: "overlayPane",
+      pane: "overlayPane"
     });
 
     const voltaLayer = L.polyline(coordsVolta, {
@@ -230,55 +277,53 @@ try {
       lineJoin: "round",
       lineCap: "round",
       smoothFactor: 2,
-      pane: "overlayPane",
+      pane: "overlayPane"
     });
 
-    window.rotaLayer = L.layerGroup([
-      sombraIda,
-      sombraVolta,
-      idaLayer,
-      voltaLayer,
-    ]).addTo(mapa);
-
+    window.rotaLayer = L.layerGroup([sombraIda, sombraVolta, idaLayer, voltaLayer]).addTo(mapa);
     mapa.fitBounds(L.latLngBounds(coords));
 
-    function ativarIda() {
+    const ativarIda = () => {
       rotaNormal = true;
-      idaLayer.setStyle({ weight: estiloAtivo.weight, opacity: estiloAtivo.opacity });
-      voltaLayer.setStyle({ weight: estiloInativo.weight, opacity: estiloInativo.opacity });
+      document.getElementById("sentidoAtual").textContent = "Ida";
+
+      idaLayer.setStyle(estiloAtivo);
+      voltaLayer.setStyle(estiloInativo);
       sombraIda.setStyle({ opacity: 0.25 });
       sombraVolta.setStyle({ opacity: 0.05 });
 
-      fetch(`/api/paradas_linha/${linhaId}`)
-        .then((res) => res.json())
-        .then((paradas) => carregarParadas(paradas));
-    }
+      document.getElementById("direcaoLegenda").classList.remove("volta-ativa");
 
-    function ativarVolta() {
+      fetch(`/api/paradas_linha/${linhaId}`)
+        .then(res => res.json())
+        .then(paradas => carregarParadas(paradas));
+    };
+
+    const ativarVolta = () => {
       rotaNormal = false;
-      voltaLayer.setStyle({ weight: estiloAtivo.weight, opacity: estiloAtivo.opacity });
-      idaLayer.setStyle({ weight: estiloInativo.weight, opacity: estiloInativo.opacity });
+      document.getElementById("sentidoAtual").textContent = "Volta";
+
+      voltaLayer.setStyle(estiloAtivo);
+      idaLayer.setStyle(estiloInativo);
       sombraVolta.setStyle({ opacity: 0.25 });
       sombraIda.setStyle({ opacity: 0.05 });
 
+      document.getElementById("direcaoLegenda").classList.add("volta-ativa");
+
       fetch(`/api/paradas_linha/${linhaId}`)
-        .then((res) => res.json())
-        .then((paradas) => carregarParadas([...paradas].reverse()));
-    }
+        .then(res => res.json())
+        .then(paradas => carregarParadas([...paradas].reverse()));
+    };
 
     idaLayer.on("click", ativarIda);
     voltaLayer.on("click", ativarVolta);
 
-    document.getElementById("toggleDirection").onclick = () => {
+    document.getElementById("toggleDirection")?.addEventListener("click", () => {
       rotaNormal ? ativarVolta() : ativarIda();
-    };
+    });
 
     ativarIda();
-  } else {
-    console.warn("⚠️ Nenhum shape encontrado para a linha", linhaId);
+  } catch (err) {
+    console.error("Erro ao desenhar rota da linha:", err);
   }
-} catch (err) {
-  console.error("Erro ao desenhar rota da linha:", err);
-}
-
 }

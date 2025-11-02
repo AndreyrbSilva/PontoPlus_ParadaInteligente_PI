@@ -231,7 +231,6 @@ function filterAndRenderBuses(term) {
       const nome = normalizeText(bus.linha_nome);
       const numero = normalizeText(bus.linha_id.toString());
 
-      // ✅ busca por nome OU número da linha
       return nome.includes(normalizedTerm) || numero.includes(normalizedTerm);
     })
     .map(bus => {
@@ -256,11 +255,8 @@ function filterAndRenderBuses(term) {
   });
 }
 
-// Removendo busca dinâmica no input (não adiciona listener de input)
-
-// Adiciona listener no submit do form para filtrar só ao clicar na lupa ou apertar Enter
 searchForm.addEventListener("submit", (e) => {
-  e.preventDefault(); // evita reload da página
+  e.preventDefault(); 
   const term = searchInput.value.trim();
   filterAndRenderBuses(term);
 });
@@ -268,18 +264,15 @@ searchForm.addEventListener("submit", (e) => {
 function reordenarCards() {
   const cards = Array.from(busList.children);
 
-  // Ordena de acordo com o tempo atual no estado
   cards.sort((a, b) => {
     const tempoA = busState[a.id]?.tempo || 999;
     const tempoB = busState[b.id]?.tempo || 999;
     return tempoA - tempoB;
   });
 
-  // Reanexa na nova ordem
   cards.forEach(card => busList.appendChild(card));
 }
 
-// Diminui localmente a cada minuto
 setInterval(() => {
   Object.keys(busState).forEach((id) => {
     const bus = busState[id];
@@ -296,18 +289,12 @@ setInterval(() => {
     }
   });
 
-  // 🔸 Reordena visualmente conforme tempos atualizados
   reordenarCards();
 }, 60000);
 
-
-
-// Busca novos dados a cada 30 segundos e atualiza
 setInterval(carregarOnibus, 30000);
 
-// Inicializa carregando os ônibus
 document.addEventListener("DOMContentLoaded", async () => {
   await carregarOnibus(true);
   filterAndRenderBuses("");
 });
-

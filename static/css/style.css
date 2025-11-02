@@ -94,6 +94,7 @@ body.dark-mode {
   align-items: center;
   position: relative;
   padding: 1.5rem 1rem;
+  height: 120px;
   background: #dfdfdf;
   box-shadow: 0 2px 15px rgba(0, 0, 0, 0.15);
   transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease;
