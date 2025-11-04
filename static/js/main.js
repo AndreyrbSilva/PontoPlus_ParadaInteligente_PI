@@ -213,20 +213,32 @@ function atualizarCard(id) {
   `;
 }
 
-// Renderiza a lista filtrada
+function normalizeText(str) {
+  return str
+    .normalize("NFD") // separa acentos das letras
+    .replace(/[\u0300-\u036f]/g, "") // remove os acentos
+    .toLowerCase()
+    .trim();
+}
+
 function filterAndRenderBuses(term) {
   busList.innerHTML = "";
 
+  const normalizedTerm = normalizeText(term);
+
   const filtered = allBuses
-    .filter(bus =>
-      bus.linha_nome.toLowerCase().includes(term.toLowerCase())
-    )
+    .filter(bus => {
+      const nome = normalizeText(bus.linha_nome);
+      const numero = normalizeText(bus.linha_id.toString());
+
+      return nome.includes(normalizedTerm) || numero.includes(normalizedTerm);
+    })
     .map(bus => {
       const estado = busState[bus.onibus_id];
       const tempoMin = estado ? estado.tempo : Math.floor(Math.random() * 10) + 2;
       return { bus, tempoMin };
     })
-    .sort((a, b) => a.tempoMin - b.tempoMin); // 🔹 ordena do menor para o maior tempo
+    .sort((a, b) => a.tempoMin - b.tempoMin);
 
   if (filtered.length === 0) {
     const msg = document.createElement("p");
@@ -243,11 +255,8 @@ function filterAndRenderBuses(term) {
   });
 }
 
-// Removendo busca dinâmica no input (não adiciona listener de input)
-
-// Adiciona listener no submit do form para filtrar só ao clicar na lupa ou apertar Enter
 searchForm.addEventListener("submit", (e) => {
-  e.preventDefault(); // evita reload da página
+  e.preventDefault(); 
   const term = searchInput.value.trim();
   filterAndRenderBuses(term);
 });
@@ -255,18 +264,15 @@ searchForm.addEventListener("submit", (e) => {
 function reordenarCards() {
   const cards = Array.from(busList.children);
 
-  // Ordena de acordo com o tempo atual no estado
   cards.sort((a, b) => {
     const tempoA = busState[a.id]?.tempo || 999;
     const tempoB = busState[b.id]?.tempo || 999;
     return tempoA - tempoB;
   });
 
-  // Reanexa na nova ordem
   cards.forEach(card => busList.appendChild(card));
 }
 
-// Diminui localmente a cada minuto
 setInterval(() => {
   Object.keys(busState).forEach((id) => {
     const bus = busState[id];
@@ -283,18 +289,12 @@ setInterval(() => {
     }
   });
 
-  // 🔸 Reordena visualmente conforme tempos atualizados
   reordenarCards();
 }, 60000);
 
-
-
-// Busca novos dados a cada 30 segundos e atualiza
 setInterval(carregarOnibus, 30000);
 
-// Inicializa carregando os ônibus
 document.addEventListener("DOMContentLoaded", async () => {
   await carregarOnibus(true);
   filterAndRenderBuses("");
 });
-

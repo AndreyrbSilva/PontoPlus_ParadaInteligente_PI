@@ -5,6 +5,35 @@ html, body {
   height: 100%;
   overflow: hidden; /* bloqueia qualquer scroll global */
   font-family: "Segoe UI", sans-serif;
+  background: #fff;
+  color: #030303;
+}
+
+.paradas,
+.back-btn,
+.bus-number,
+.bus-header h1,
+.bus-badge,
+.bus-icon,
+.sidebar-header-top,
+.sidebar-header-top h1,
+.stop-item,
+.stop-content,
+.stop-dot,
+.stop-title,
+.stop-time {
+  transition: 
+    background-color 0.4s ease,
+    color 0.4s ease,
+    border-color 0.4s ease,
+    box-shadow 0.4s ease,
+    opacity 0.4s ease;
+}
+
+
+body.dark-mode {
+  background: #121212;
+  color: #f0f0f0;
 }
 
 .container {
@@ -13,6 +42,41 @@ html, body {
   width: 100vw;
   overflow: hidden;
 }
+
+.theme-toggle-map {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  z-index: 1000; /* 🔝 Fica acima do mapa */
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  border-radius: 50%;
+  width: 42px;
+  height: 42px;
+  cursor: pointer;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.514);
+  transition: background 0.3s, transform 0.3s;
+}
+
+.theme-toggle-map:hover {
+  background: rgba(230, 230, 230, 1);
+  transform: scale(1.05);
+}
+
+.theme-toggle-map .icon {
+  width: 40px;
+  height: 40px;
+  color: #333;
+}
+
+body.dark-mode .theme-toggle-map {
+  background: rgba(40, 40, 40, 0.9);
+}
+
+body.dark-mode .theme-toggle-map .icon {
+  color: #f1f1f1;
+}
+
 
 /* ==== SIDEBAR ==== */
 .sidebar {
@@ -26,6 +90,12 @@ html, body {
   padding: 0;
   margin: 0;
 }
+
+body.dark-mode .sidebar {
+  background: #1e1e1e;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.7);
+}
+
 
 /* ====== HEADERS FIXOS ====== */
 
@@ -43,11 +113,20 @@ html, body {
   z-index: 3;
 }
 
+body.dark-mode .sidebar-header-top {
+  background: #1e1e1e;
+  border-bottom: 1px solid #333;
+}
+
 .sidebar-header-top h1 {
   font-size: 20px;
   font-weight: bold;
   margin: 0;
   color: #030303;
+}
+
+body.dark-mode .sidebar-header-top h1 {
+  color: #f0f0f0;
 }
 
 .back-btn {
@@ -56,6 +135,10 @@ html, body {
   color: #000000;
   font-size: 16px;
   cursor: pointer;
+}
+
+body.dark-mode .back-btn {
+  color: #f0f0f0;
 }
 
 .sidebar-header-mid {
@@ -73,57 +156,26 @@ html, body {
   z-index: 2;
 }
 
-.linha {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.bus-number {
-  background: #fff;
-  color: #2b57d9;
-  padding: 5px 10px;
-  border-radius: 6px;
-  font-weight: bold;
-}
-
-.bus-name {
-  font-size: 15px;
-}
-
-.sentido-btn {
-  background: none;
-  border: none;
-  color: hsl(224, 100%, 74%);
-  cursor: pointer;
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-/* Bloco branco inferior de separação */
-.sidebar-header-bottom {
-  background: #ffffff;
-  height: 10px;
-  border-top: none;
-  border-bottom: 1px solid #ddd;
-  position: sticky;
-  top: 94px; /* 50 + 44 (altura do bloco azul) */
-  z-index: 1;
-}
-
 /* ====== CONTEÚDO SCROLLÁVEL ====== */
 .paradas {
   flex: 1;
   overflow-y: auto;
   padding: 15px;
   margin: 0;
+  background: #ffffff;
+}
+
+body.dark-mode .paradas {
+  background: #1e1e1e;
 }
 
 .paradas h2 {
   color: #2b57d9;
   margin: 0 0 10px;
+}
+
+body.dark-mode .paradas h2 {
+  color: #6ea0ff;
 }
 
 .stops-list {
@@ -142,6 +194,12 @@ html, body {
   border-radius: 4px;
 }
 
+body.dark-mode .parada-item {
+  background: #2a2a2a;
+  border-left-color: #6ea0ff;
+  color: #f0f0f0;
+}
+
 /* Scrollbar custom */
 .paradas::-webkit-scrollbar {
   width: 6px;
@@ -149,6 +207,10 @@ html, body {
 .paradas::-webkit-scrollbar-thumb {
   background: #bbb;
   border-radius: 3px;
+}
+
+body.dark-mode .paradas::-webkit-scrollbar-thumb {
+  background: #3b3b3b;
 }
 
 /* Agrupa o número e o título ao lado do botão Voltar */
@@ -159,7 +221,10 @@ html, body {
   justify-content: flex-start;
 }
 
-/* Grupo com número e título */
+body.dark-mode .sidebar-header-top {
+  background: #2b2b2b;
+}
+
 .bus-header {
   display: flex;
   align-items: center;
@@ -176,12 +241,21 @@ html, body {
   font-size: 14px;
 }
 
+body.dark-mode .bus-number {
+  background: #3a3a3a;
+  color: #6ea0ff;
+}
+
 /* Título "Ônibus 303" */
 .bus-header h1 {
   font-size: 20px;
   font-weight: bold;
   color: #030303;
   margin: 0;
+}
+
+body.dark-mode .bus-header h1 {
+  color: #f0f0f0;
 }
 
 /* Esconde o número da parte azul do meio */
@@ -217,6 +291,11 @@ html, body {
   font-size: 14px;
 }
 
+body.dark-mode .bus-badge {
+  background: #1a3a80;
+  color: #fff;
+}
+
 /* Ícone do ônibus dentro do quadrado */
 .bus-icon {
   width: 16px;
@@ -236,6 +315,10 @@ html, body {
   font-weight: bold;
   color: #030303;
   margin: 0;
+}
+
+body.dark-mode .bus-header h1 {
+  color: #f0f0f0;
 }
 
 /* Oculta o número duplicado do bloco azul inferior */
@@ -258,16 +341,17 @@ html, body {
   padding: 0 !important;
   border-radius: 0 !important;
 }
+
 /* ===== PARADAS ===== */
 .stop-item {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  padding-left: 30px;
-  padding-top: 10px;
-  padding-bottom: 10px; 
-  margin-bottom: 0;   
-  cursor: pointer;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    padding-left: 30px;
+    padding-top: 10px;
+    padding-bottom: 10px; 
+    margin-bottom: 0;   
+    cursor: pointer;
 }
 
 /* ===== LINHA ENTRE AS PARADAS ===== */
@@ -280,6 +364,10 @@ html, body {
     background: #000;
     z-index: 1;
     transition: none;
+}
+
+body.dark-mode .stop-line {
+    background: #6ea0ff;
 }
 
 /* A primeira parada não tem linha acima */
@@ -296,12 +384,7 @@ html, body {
     bottom: auto;
 }
 
-/* --- */
-
 /* ===== BOLINHA ===== */
-/* onibus.css */
-
-/* ===== BOLINHA (ALTERADO) ===== */
 .stop-dot {
     position: absolute;
     left: 8px;
@@ -315,26 +398,38 @@ html, body {
     transition: all 0.3s ease;
 }
 
-/* Estado ativo */
 .stop-item.open .stop-dot {
     background: #000;
 }
 
-/* --- */
+body.dark-mode .stop-dot {
+    border-color: #6ea0ff;
+    background: #1a1a1a;
+}
 
-/* ===== CONTEÚDO DA PARADA ===== */
+body.dark-mode .stop-item.open .stop-dot {
+    background: #6ea0ff;
+}
+
 .stop-content {
-    background: #fff;
-    border: 1px solid #ddd;
+    background: #ffffff;
+    border: 1px solid #cacaca;
     border-radius: 8px;
     padding: 10px 12px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     transition: all 0.3s ease;
 }
 
-/* --- */
+.stop-content:hover {
+    background: #eeeeeefa;
+}
 
-/* ===== CABEÇALHO ===== */
+body.dark-mode .stop-content {
+    background: #2a2a2a;
+    border-color: #444;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
 .stop-header {
     display: flex;
     justify-content: space-between;
@@ -346,15 +441,20 @@ html, body {
     color: #0d152c;
 }
 
+body.dark-mode .stop-title {
+    color: #f0f0f0;
+}
+
 .stop-time {
     font-size: 13px;
     color: #2b57d9;
     font-weight: 500;
 }
 
-/* --- */
+body.dark-mode .stop-time {
+    color: #6ea0ff;
+}
 
-/* ===== DETALHES ===== */
 .stop-details {
     max-height: 0;
     overflow: hidden;
@@ -368,10 +468,481 @@ html, body {
     opacity: 1;
 }
 
-/* --- */
-
-/* ===== DESTAQUE QUANDO ABERTO ===== */
 .stop-item.open .stop-content {
     background: #eef2ff;
     box-shadow: 0 3px 6px rgba(43, 87, 217, 0.2);
+}
+
+body.dark-mode .stop-item.open .stop-content {
+    background: #3a3a3a;
+    box-shadow: 0 3px 6px rgba(110, 160, 255, 0.2);
+}
+
+.direcao-legenda {
+  position: absolute;
+  bottom: 16px;
+  left: 18px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  box-shadow: 0 6px 6px rgba(0, 0, 0, 0.329);
+  z-index: 900;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+  transition: all 0.3s ease;
+
+  /* --- efeito vidro claro --- */
+  backdrop-filter: blur(8px);
+  background: rgba(250, 250, 250, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+body.dark-mode .direcao-legenda {
+  /* --- efeito vidro escuro --- */
+  backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f0f0f0;
+}
+
+.direcao-card {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.linha-ida,
+.linha-volta {
+  width: 28px;
+  height: 5px;
+  border-radius: 3px;
+  transition: background 0.3s ease;
+}
+
+.texto-ida,
+.texto-volta {
+  font-weight: 600;
+  color: #111;
+  text-transform: capitalize;
+  letter-spacing: 0.3px;
+}
+
+.linha-ida { background: #0066ff; }
+.linha-volta { background: #8ba4ff; }
+
+.direcao-legenda.volta-ativa .linha-ida { background: #8ba4ff; }
+.direcao-legenda.volta-ativa .linha-volta { background: #0066ff; }
+
+body.dark-mode .texto-ida,
+body.dark-mode .texto-volta {
+  color: #f0f0f0;
+}
+
+
+.paradas-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-right: 6px;
+}
+
+.sentido-btn {
+  background: transparent; /* deixa transparente */
+  border: none;            /* remove a borda padrão */
+  color: hsl(224, 100%, 74%);
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;        /* opcional, para deixar tamanho confortável */
+  transition: color 0.3s ease, background 0.3s ease;
+}
+
+/* Hover opcional: muda apenas a cor do texto/ícone */
+.sentido-btn:hover {
+  color: hsl(224, 78%, 85%);
+  background: transparent; /* efeito sutil ao passar o mouse */
+}
+
+/* Modo escuro */
+body.dark-mode .sentido-btn {
+  color: hsl(224, 100%, 80%);
+}
+
+body.dark-mode .sentido-btn:hover {
+  color: hsl(224, 100%, 64%);
+  background: transparent;
+}
+
+.sentido-indicador {
+  background-color: #e3e8ff;
+  border: 1px solid #1e279e;
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  color: #1e279e;
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 4px 10px;
+  border-radius: 10px;
+  text-transform: capitalize;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+body.dark-mode .sentido-indicador {
+  background-color: #2e2e2e;
+  border-color: #c3d8ff;
+  color: #c3d8ff;
+}
+
+/* =========================
+   Botão de alternância de tema (com efeito vidro)
+   ========================= */
+.theme-toggle-map {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  z-index: 1000;
+  border: none;
+  border-radius: 50%;
+  width: 55px;
+  height: 55px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+  overflow: hidden;
+
+  /* --- efeito vidro claro --- */
+  backdrop-filter: blur(8px) saturate(150%);
+  -webkit-backdrop-filter: blur(8px) saturate(150%);
+  background: rgba(255, 255, 255, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.theme-toggle-map:hover {
+  background: rgba(255, 255, 255, 0.6);
+  transform: scale(1.08);
+}
+
+/* --- Tema escuro --- */
+body.dark-mode .theme-toggle-map {
+  backdrop-filter: blur(8px) saturate(150%);
+  -webkit-backdrop-filter: blur(8px) saturate(150%);
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+
+body.dark-mode .theme-toggle-map:hover {
+  background: rgba(40, 40, 40, 0.6);
+  transform: scale(1.08);
+}
+
+/* Ícones */
+.theme-toggle-map .icon {
+  width: 32px;
+  height: 32px;
+  transition: transform 0.6s ease, opacity 0.4s ease;
+  display: inline-block;
+  color: var(--text-color);
+}
+
+/* Ícone no tema escuro */
+body.dark-mode .theme-toggle-map .icon {
+  color: #f1f1f1;
+}
+
+/* === animações de rotação === */
+@keyframes spin {
+  0%   { transform: rotate(0deg) scale(1); opacity: 1; }
+  50%  { transform: rotate(180deg) scale(0.4); opacity: 0.5; }
+  100% { transform: rotate(360deg) scale(1); opacity: 1; }
+}
+
+@keyframes spin-reverse {
+  0%   { transform: rotate(0deg) scale(0.4); opacity: 0.5; }
+  50%  { transform: rotate(180deg) scale(1.2); opacity: 0.8; }
+  100% { transform: rotate(360deg) scale(1); opacity: 1; }
+}
+
+.spin {
+  animation: spin 0.7s ease forwards;
+}
+
+.spin-reverse {
+  animation: spin-reverse 0.7s ease forwards;
+}
+
+/* =========================
+   Botões de Zoom (Leaflet)
+   Vidro contínuo + modo escuro funcional
+   ========================= */
+
+.leaflet-control-zoom {
+  border: none !important;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+  transition: all 0.3s ease;
+
+  /* fundo de vidro no container */
+  backdrop-filter: blur(8px) saturate(150%);
+  -webkit-backdrop-filter: blur(8px) saturate(150%);
+  background: rgba(255, 255, 255, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+/* Remove estilos padrão do Leaflet */
+.leaflet-control-zoom a {
+  background: transparent !important;
+  border: none !important;
+  margin: 0 !important;
+  box-shadow: none !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #111 !important;
+}
+
+/* --- Botões --- */
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out {
+  width: 42px;
+  height: 42px;
+  font-size: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+}
+
+/* --- Hover --- */
+.leaflet-control-zoom-in:hover,
+.leaflet-control-zoom-out:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.08);
+}
+
+/* --- Bordas arredondadas --- */
+.leaflet-control-zoom-in {
+  border-radius: 14px 14px 0 0;
+}
+
+.leaflet-control-zoom-out {
+  border-radius: 0 0 14px 14px;
+}
+
+/* =========================
+   Tema Escuro
+   ========================= */
+body.dark-mode .leaflet-control-zoom {
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.6);
+}
+
+body.dark-mode .leaflet-control-zoom a {
+  color: #f1f1f1 !important;
+}
+
+body.dark-mode .leaflet-control-zoom-in:hover,
+body.dark-mode .leaflet-control-zoom-out:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* --- Transições suaves --- */
+.leaflet-control-zoom,
+.leaflet-control-zoom a {
+  transition:
+    background-color 0.4s ease,
+    border-color 0.4s ease,
+    color 0.4s ease,
+    box-shadow 0.4s ease,
+    transform 0.3s ease;
+}
+
+/* Estilo padrão da barra de créditos do Leaflet */
+.leaflet-control-attribution {
+  background: transparent !important;
+  color: #333 !important;
+  font-size: 11px !important;
+  border: none !important;
+  transition: color 0.4s ease, background-color 0.4s ease;
+}
+
+/* Links dentro do crédito */
+.leaflet-control-attribution a {
+  color: #0066ff !important;
+  text-decoration: none;
+  transition: color 0.4s ease;
+}
+
+.leaflet-control-attribution a:hover {
+  text-decoration: underline;
+}
+
+/* Tema escuro */
+body.dark-mode .leaflet-control-attribution {
+  color: #aaa !important;
+  background: transparent !important;
+}
+
+body.dark-mode .leaflet-control-attribution a {
+  color: #66aaff !important;
+}
+
+
+
+
+/* =============================
+   🌐 RESPONSIVIDADE
+   ============================= */
+
+/* --- Tablets e telas médias --- */
+@media (max-width: 1024px) {
+  .sidebar {
+    width: 320px;
+  }
+
+  .bus-header h1 {
+    font-size: 18px;
+  }
+
+  .sentido-btn {
+    font-size: 13px;
+  }
+
+  .direcao-legenda {
+    font-size: 12px;
+    padding: 6px 8px;
+  }
+}
+
+/* --- Mobile (smartphones) --- */
+@media (max-width: 768px) {
+  .container {
+    flex-direction: column;
+  }
+
+  /* Sidebar vira painel sobreposto */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: -100%;
+    width: 85%;
+    max-width: 380px;
+    height: 100%;
+    z-index: 2000;
+    transition: left 0.4s ease;
+    box-shadow: 4px 0 12px rgba(0,0,0,0.3);
+  }
+
+  .sidebar.open {
+    left: 0;
+  }
+
+  /* Botão de menu flutuante (para abrir sidebar) */
+  .menu-toggle {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    z-index: 2100;
+    background: rgba(255,255,255,0.85);
+    border: none;
+    border-radius: 50%;
+    width: 45px;
+    height: 45px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.3s, transform 0.3s;
+  }
+
+  .menu-toggle:hover {
+    transform: scale(1.05);
+  }
+
+  body.dark-mode .menu-toggle {
+    background: rgba(30,30,30,0.85);
+    color: #f0f0f0;
+  }
+
+  /* O mapa ocupa toda a tela */
+  #map {
+    height: 100vh;
+    width: 100%;
+  }
+
+  /* Ajusta botões flutuantes */
+  .theme-toggle-map {
+    width: 48px;
+    height: 48px;
+    top: 15px;
+    right: 15px;
+  }
+
+  .direcao-legenda {
+    bottom: 10px;
+    left: 10px;
+    font-size: 12px;
+    padding: 6px 8px;
+  }
+
+  /* Títulos e texto menores */
+  .bus-header h1 {
+    font-size: 16px;
+  }
+
+  .bus-badge {
+    padding: 3px 8px;
+  }
+
+  .stop-content {
+    padding: 8px;
+  }
+
+  /* Oculta texto menos importante se necessário */
+  .sentido-btn {
+    font-size: 12px;
+    padding: 3px 6px;
+  }
+}
+
+/* --- Telas muito pequenas --- */
+@media (max-width: 480px) {
+  .bus-header h1 {
+    font-size: 15px;
+  }
+
+  .bus-badge {
+    font-size: 12px;
+    gap: 4px;
+  }
+
+  .direcao-legenda {
+    gap: 4px;
+  }
+
+  .stop-title {
+    font-size: 14px;
+  }
+
+  .stop-time {
+    font-size: 12px;
+  }
+}
+
+/* Aplica apenas em dispositivos de toque */
+@media (hover: none) and (pointer: coarse) {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+  button, a {
+    outline: none;
+  }
 }
