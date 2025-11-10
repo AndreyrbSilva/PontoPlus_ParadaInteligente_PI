@@ -2,29 +2,29 @@ import time
 import math
 import requests
 from flask_compress import Compress
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, request
 from flask_cors import CORS
 from pymongo import MongoClient
 from datetime import datetime, timedelta
 import os
 
-# -------------------------------
+# ------------------------------------
 # Configuração básica do Flask
-# -------------------------------
+# ------------------------------------
 app = Flask(__name__)
 CORS(app)
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = timedelta(days=30)
 Compress(app)
 
-# -------------------------------
+# ------------------------------------
 # Configurações (ambiente / padrão)
-# -------------------------------
+# ------------------------------------
 OSRM_HOST = os.getenv("OSRM_HOST", "https://router.project-osrm.org")
 OSRM_TABLE_MAX = int(os.getenv("OSRM_TABLE_MAX", "95"))
 
-# -------------------------------
+# ------------------------------------
 # Conexão com o MongoDB
-# -------------------------------
+# ------------------------------------
 MONGO_URI = os.getenv(
     "MONGO_URI",
     "mongodb+srv://PontoPlus:txcYW0zUnClvs7TN@pontoplus.v7tiqaf.mongodb.net/?retryWrites=true&w=majority&appName=PontoPlus"
@@ -32,27 +32,14 @@ MONGO_URI = os.getenv(
 client = MongoClient(MONGO_URI)
 db = client["PontoPlus"]
 
-# -------------------------------
-# Páginas
-# -------------------------------
-@app.route("/")
-def home():
-    return render_template("index.html")
-
-@app.route("/onibus/<onibus_id>")
-def onibus_page(onibus_id):
-    return render_template("onibus.html", onibus_id=onibus_id)
-
-# -------------------------------
+# ------------------------------------
 # Helpers
-# -------------------------------
+# ------------------------------------
 def fmt_coord(coord):
-    """Garante formato lon,lat com casas decimais."""
     lon, lat = float(coord[0]), float(coord[1])
     return f"{lon:.6f},{lat:.6f}"
 
 def safe_request_get(url, timeout=10):
-    """Requisição GET com tratamento de erro."""
     try:
         r = requests.get(url, timeout=timeout)
         r.raise_for_status()
@@ -60,24 +47,23 @@ def safe_request_get(url, timeout=10):
     except requests.RequestException as e:
         return {"_request_error": str(e), "status_code": getattr(e.response, "status_code", None)}
 
-# -------------------------------
-# Função unificada ETA (OSRM)
-# -------------------------------
+# ------------------------------------
+# Função unificada ETA (mantida)
+# ------------------------------------
 def calcular_eta(posicao_atual, paradas, usar_table=True):
     if not posicao_atual or not isinstance(posicao_atual, (list, tuple)) or len(posicao_atual) < 2:
         return {"erro": "Posição atual inválida"}
 
     hora_agora = datetime.now()
 
+    # tenta usar API /table
     if usar_table and len(paradas) > 1 and len(paradas) + 1 <= OSRM_TABLE_MAX:
         coords_list = [posicao_atual] + paradas
         coords = ";".join([fmt_coord(c) for c in coords_list])
         url = f"{OSRM_HOST}/table/v1/driving/{coords}?sources=0"
         data = safe_request_get(url, timeout=12)
 
-        if "_request_error" in data:
-            pass
-        else:
+        if "_request_error" not in data:
             durations = data.get("durations")
             if durations and len(durations) > 0:
                 duracoes = durations[0]
@@ -99,7 +85,7 @@ def calcular_eta(posicao_atual, paradas, usar_table=True):
                         })
                 return etas
 
-    # fallback: rota por rota
+    # fallback rota-a-rota
     etas = []
     for parada in paradas:
         coords = f"{fmt_coord(posicao_atual)};{fmt_coord(parada)}"
@@ -137,102 +123,69 @@ def calcular_eta(posicao_atual, paradas, usar_table=True):
 
     return etas
 
-# -------------------------------
-# Endpoint: ônibus com info da linha
-# -------------------------------
-@app.route("/api/onibus")
-def get_onibus():
-    onibus_data = list(db.onibus.find({}, {"_id": 0}))
-    enriched = []
-
-    for onibus in onibus_data:
-        linha = db.linhas.find_one({"linha_id": onibus["linha_id"]}, {"_id": 0})
-        if not linha:
-            continue
-
-        prox_parada = db.paradas.find_one({"linha_id": linha["linha_id"]}, {"_id": 0})
-
-        enriched.append({
-            "onibus_id": onibus["onibus_id"],
-            "name": onibus["name"],
-            "linha_id": linha.get("numero_linha"),
-            "linha_nome": linha.get("nome"),
-            "modelo": onibus.get("modelo"),
-            "capacidade": onibus.get("capacidade"),
-            "status": onibus.get("status"),
-            "features": onibus.get("features"),
-            "tarifa": f"{float(onibus.get('tarifa', 0)):.2f}",
-            "tempo_estimado": None,
-            "prox_parada": prox_parada["name"] if prox_parada else "Não disponível"
-        })
-
-    return jsonify(enriched)
-
-# -------------------------------
-# Endpoint ETA (OSRM)
-# -------------------------------
-eta_cache = {}
-
-@app.route("/api/eta/<onibus_id>")
-def get_eta(onibus_id):
+# ------------------------------------
+# Novo cálculo ETA baseado em coords IoT
+# ------------------------------------
+@app.route("/api/eta_from_coords", methods=["POST"])
+def eta_from_coords():
     try:
-        now = time.time()
-        cache_entry = eta_cache.get(onibus_id)
-        if cache_entry and now - cache_entry[0] < 60:
-            return jsonify(cache_entry[1])
+        data = request.get_json(force=True)
 
-        onibus = db.onibus.find_one({"onibus_id": onibus_id}, {"_id": 0})
-        if not onibus:
-            return jsonify({"erro": "Ônibus não encontrado"}), 404
+        pos = data.get("position")
+        if not pos or "lat" not in pos or "lng" not in pos:
+            return jsonify({"erro": "position {lat,lng} é obrigatório"}), 400
 
-        linha = db.linhas.find_one({"linha_id": onibus["linha_id"]}, {"_id": 0})
-        if not linha:
-            return jsonify({"erro": "Linha não encontrada"}), 404
+        posicao_atual = [float(pos["lng"]), float(pos["lat"])]
 
-        loc = onibus.get("localizacao", {})
-        if "coordinates" in loc:
-            posicao_atual = loc["coordinates"]
-        elif "lat" in loc and "lng" in loc:
-            posicao_atual = [loc["lng"], loc["lat"]]
-        else:
-            return jsonify({"erro": "Posição do ônibus indisponível"}), 404
+        # Obtém a(s) parada(s)
+        stops = []
+        if "next_stop" in data and isinstance(data["next_stop"], dict):
+            s = data["next_stop"]
+            if "lat" in s and "lng" in s:
+                stops.append([float(s["lng"]), float(s["lat"])])
 
-        paradas = []
-        for parada in db.paradas.find({"linha_id": linha["linha_id"]}, {"_id": 0, "localizacao": 1}):
-            coords = parada.get("localizacao")
-            if coords and "lat" in coords and "lng" in coords:
-                paradas.append([coords["lng"], coords["lat"]])
+        elif "stops" in data and isinstance(data["stops"], list):
+            for s in data["stops"]:
+                if "lat" in s and "lng" in s:
+                    stops.append([float(s["lng"]), float(s["lat"])])
 
-        if not paradas:
-            return jsonify({"erro": "Nenhuma parada válida encontrada"}), 404
+        if not stops:
+            return jsonify({"erro": "Envie next_stop ou stops corretamente."}), 400
 
-        if len(paradas) + 1 > OSRM_TABLE_MAX:
-            paradas = paradas[: (OSRM_TABLE_MAX - 1)]
+        usar_table = data.get("usar_table", True)
 
-        etas = calcular_eta(posicao_atual, paradas, usar_table=True)
+        # Chamar cálculo ETA
+        etas = calcular_eta(posicao_atual, stops, usar_table=usar_table)
 
         if isinstance(etas, dict) and "erro" in etas:
             return jsonify(etas), 500
 
+        # Identifica a próxima parada (menor duração)
+        proxima_parada = min(
+            etas,
+            key=lambda x: x["duracao_segundos"] if x["duracao_segundos"] is not None else 999999
+        )
+
         resultado = {
-            "onibus_id": onibus_id,
-            "linha_id": linha.get("numero_linha"),
             "requested_at": datetime.now().isoformat(),
-            "etas": etas
+            "position": pos,
+            "etas": etas,
+            "proxima_parada": proxima_parada
         }
 
-        eta_cache[onibus_id] = (now, resultado)
         return jsonify(resultado)
 
-    except requests.Timeout:
-        return jsonify({"erro": "Tempo limite de requisição OSRM excedido"}), 504
     except Exception as e:
-        print("Erro ETA:", repr(e))
-        return jsonify({"erro": "Erro interno ao calcular ETA", "detalhes": str(e)}), 500
+        print("Erro no novo cálculo ETA:", repr(e))
+        return jsonify({"erro": "Erro interno", "detalhes": str(e)}), 500
 
-# -------------------------------
-# Demais endpoints
-# -------------------------------
+# ------------------------------------
+# Endpoints básicos ainda mantidos (linhas, paradas, sensores...)
+# ------------------------------------
+@app.route("/")
+def home():
+    return render_template("index.html")
+
 @app.route("/api/linhas")
 def get_linhas():
     data = list(db.linhas.find({}, {"_id": 0}))
@@ -240,16 +193,10 @@ def get_linhas():
 
 @app.route("/api/paradas_linha/<linha_ref>")
 def get_paradas_linha(linha_ref):
-    """
-    Retorna as paradas de uma linha.
-    Aceita tanto '116' quanto 'L116' como referência.
-    """
-    # 1️⃣ Tenta buscar diretamente com e sem o prefixo "L"
     paradas = list(db.paradas.find({"linha_id": f"L{linha_ref}"}, {"_id": 0}))
     if not paradas:
         paradas = list(db.paradas.find({"linha_id": linha_ref}, {"_id": 0}))
 
-    # 2️⃣ Caso ainda não encontre, tenta buscar a linha correspondente
     if not paradas:
         linha = db.linhas.find_one(
             {"$or": [{"numero_linha": int(linha_ref)}, {"linha_id": f"L{linha_ref}"}]},
@@ -258,10 +205,8 @@ def get_paradas_linha(linha_ref):
         if linha:
             paradas = list(db.paradas.find({"linha_id": linha["linha_id"]}, {"_id": 0}))
 
-    # 3️⃣ Corrige formato das coordenadas, se necessário
     for parada in paradas:
         loc = parada.get("localizacao", {})
-        # Garante formato {"coordinates": [lon, lat]}
         if isinstance(loc, dict):
             if "lat" in loc and "lng" in loc:
                 parada["localizacao"] = {"coordinates": [loc["lng"], loc["lat"]]}
@@ -270,43 +215,163 @@ def get_paradas_linha(linha_ref):
 
     return jsonify(paradas)
 
-
 @app.route("/api/linha/<linha_id>")
 def get_linha_by_id(linha_id):
-    """Retorna os dados completos de uma linha (com shape e paradas)."""
     try:
-        linha = db.linhas.find_one({"linha_id": linha_id}, {"_id": 0})
+        linha = db.linhas.find_one(
+            {"$or": [{"linha_id": linha_id}, {"numero_linha": int(linha_id)}]},
+            {"_id": 0}
+        )
         if not linha:
             return jsonify({"erro": "Linha não encontrada"}), 404
-        return jsonify({"linha": linha})
-    except Exception as e:
-        return jsonify({"erro": str(e)}), 500
 
+        return jsonify(linha)
+
+    except Exception as e:
+        return jsonify({"erro": "Falha ao buscar linha", "detalhes": str(e)}), 500
+
+
+# ------------------------------------
+# Endpoint: Buscar ônibus por ID
+# ------------------------------------
+@app.route("/api/onibus/<onibus_id>")
+def listar_onibus(onibus_id):
+    try:
+        doc = db.onibus.find_one({"onibus_id": onibus_id}, {"_id": 0})
+        if not doc:
+            return jsonify({"erro": "Ônibus não encontrado"}), 404
+        return jsonify(doc)
+    except Exception as e:
+        return jsonify({"erro": "Erro ao buscar ônibus", "detalhes": str(e)}), 500
+
+
+# ------------------------------------
+# Endpoint: Listar todos ônibus
+# ------------------------------------
+@app.route("/api/onibus")
+def get_onibus():
+    try:
+        onibus_data = list(db.onibus.find({}, {"_id": 0}))
+        enriched = []
+    
+        for onibus in onibus_data:
+            linha = db.linhas.find_one(
+                {
+                    "$or": [
+                        {"linha_id": onibus["linha_id"]},
+                        {"numero_linha": onibus["linha_id"]}
+                    ]
+                },
+                {"_id": 0}
+            )
+
+            if not linha:
+                # Linha não encontrada no banco: evitar crash
+                enriched.append({
+                    "onibus_id": onibus["onibus_id"],
+                    "name": onibus.get("name"),
+                    "linha_id": onibus.get("linha_id"),
+                    "linha_nome": "Não encontrada",
+                    "modelo": onibus.get("modelo"),
+                    "capacidade": onibus.get("capacidade"),
+                    "status": onibus.get("status"),
+                    "features": onibus.get("features"),
+                    "tarifa": f"{float(onibus.get('tarifa', 0)):.2f}",
+                    "tempo_estimado": None,
+                    "prox_parada": "Indefinida"
+                })
+                continue
+
+            # Buscar primeira parada dessa linha
+            prox_parada = db.paradas.find_one(
+                {
+                    "$or": [
+                        {"linha_id": linha.get("linha_id")},
+                        {"linha_id": f"L{linha.get('numero_linha')}"}
+                    ]
+                },
+                {"_id": 0}
+            )
+
+            enriched.append({
+                "onibus_id": onibus["onibus_id"],
+                "name": onibus.get("name"),
+                "linha_id": linha.get("numero_linha"),
+                "linha_nome": linha.get("nome"),
+                "modelo": onibus.get("modelo"),
+                "capacidade": onibus.get("capacidade"),
+                "status": onibus.get("status"),
+                "features": onibus.get("features"),
+                "tarifa": f"{float(onibus.get('tarifa', 0)):.2f}",
+                "tempo_estimado": None,
+                "prox_parada": prox_parada.get("name") if prox_parada else "Não disponível"
+            })
+
+        return jsonify(enriched)
+
+    except Exception as e:
+        print("Erro no /api/onibus:", e)
+        return jsonify({"erro": "Falha interna", "detalhes": str(e)}), 500
+
+# ------------------------------------
+# Endpoint: Receber dados do IoT (GPS do ônibus)
+# ------------------------------------
+@app.route("/api/update_gps", methods=["POST"])
+def update_gps():
+    try:
+        data = request.get_json(force=True)
+        onibus_id = data.get("onibus_id")
+        lat = data.get("lat")
+        lng = data.get("lng")
+        velocidade = data.get("velocidade", None)
+        horario = datetime.now().isoformat()
+
+        if not onibus_id or lat is None or lng is None:
+            return jsonify({"erro": "Campos obrigatórios: onibus_id, lat, lng"}), 400
+
+        db.onibus.update_one(
+            {"onibus_id": onibus_id},
+            {
+                "$set": {
+                    "ultima_posicao": {
+                        "lat": float(lat),
+                        "lng": float(lng),
+                        "velocidade": velocidade,
+                        "horario": horario
+                    }
+                }
+            },
+            upsert=True
+        )
+
+        return jsonify({"status": "OK", "atualizado_em": horario})
+
+    except Exception as e:
+        return jsonify({"erro": "Erro ao atualizar GPS", "detalhes": str(e)}), 500
+
+
+# ------------------------------------
+# Endpoint: buscar sensores
+# ------------------------------------
 @app.route("/api/sensores")
 def get_sensores():
-    data = list(db.sensores.find({}, {"_id": 0}))
-    return jsonify(data)
+    try:
+        dados = list(db.sensores.find({}, {"_id": 0}))
+        return jsonify(dados)
+    except Exception as e:
+        return jsonify({"erro": "Erro ao obter sensores", "detalhes": str(e)}), 500
 
-@app.route("/api/onibus/<onibus_id>")
-def get_onibus_by_id(onibus_id):
-    onibus = db.onibus.find_one({"onibus_id": onibus_id}, {"_id": 0})
-    if not onibus:
-        return jsonify({"erro": "Ônibus não encontrado"}), 404
-    linha = db.linhas.find_one({"linha_id": onibus["linha_id"]}, {"_id": 0})
-    return jsonify({"onibus": onibus, "linha": linha})
 
-# -------------------------------
-# Cache e headers
-# -------------------------------
+# ------------------------------------
+# Cache estático / headers
+# ------------------------------------
 @app.after_request
-def add_cache_headers(response):
-    if response.content_type.startswith('text/html'):
-        response.cache_control.max_age = 300
-        response.cache_control.public = True
+def add_headers(response):
+    response.headers["Cache-Control"] = "public, max-age=3600"
     return response
 
-# -------------------------------
-# Inicialização do servidor
-# -------------------------------
+# ------------------------------------
+# Inicialização da API
+# ------------------------------------
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)
