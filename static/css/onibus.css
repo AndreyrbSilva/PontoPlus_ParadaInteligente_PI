@@ -711,9 +711,9 @@ body.dark-mode .theme-toggle-map .icon {
 /* --- Botões --- */
 .leaflet-control-zoom-in,
 .leaflet-control-zoom-out {
-  width: 42px;
-  height: 42px;
-  font-size: 20px;
+  width: 54px;
+  height: 54px;
+  font-size: 26px;
   font-weight: 600;
   cursor: pointer;
   transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
@@ -728,11 +728,34 @@ body.dark-mode .theme-toggle-map .icon {
 
 /* --- Bordas arredondadas --- */
 .leaflet-control-zoom-in {
-  border-radius: 14px 14px 0 0;
+  border-radius: 16px 16px 0 0;
 }
 
 .leaflet-control-zoom-out {
-  border-radius: 0 0 14px 14px;
+  border-radius: 0 0 16px 16px;
+}
+
+/* --- Alinhamento do zoom e créditos na mesma linha inferior --- */
+.leaflet-bottom.leaflet-right .leaflet-control-zoom {
+  position: fixed;        /* fixa em relação à tela */
+  bottom: 10px;           /* encostado na borda inferior */
+  right: 10px;            /* encostado na borda direita */
+  margin: 0;
+  z-index: 1002;          /* acima de tudo */
+}
+
+/* move o container de créditos para a esquerda do zoom */
+.leaflet-control-attribution {
+  position: fixed !important;
+  bottom: 8px !important;   /* mesmo nível do zoom */
+  right: 50px !important;    /* posiciona à esquerda do botão de zoom */
+  z-index: 1001;
+  background: rgba(20, 20, 20, 0.4); /* opcional: leve vidro */
+  backdrop-filter: blur(6px);
+  padding: 2px 8px;
+  border-radius: 8px;
+  color: #ccc !important;
+  font-size: 11px;
 }
 
 /* =========================

@@ -27,7 +27,7 @@ OSRM_TABLE_MAX = int(os.getenv("OSRM_TABLE_MAX", "95"))
 # -------------------------------
 MONGO_URI = os.getenv(
     "MONGO_URI",
-    "mongodb+srv://PontoPlus:MlMLKNXPkpYBbNgP@pontoplus.v7tiqaf.mongodb.net/?retryWrites=true&w=majority&appName=PontoPlus"
+    "mongodb+srv://PontoPlus:txcYW0zUnClvs7TN@pontoplus.v7tiqaf.mongodb.net/?retryWrites=true&w=majority&appName=PontoPlus"
 )
 client = MongoClient(MONGO_URI)
 db = client["PontoPlus"]

@@ -67,7 +67,7 @@ function carregarParadas(paradas) {
       <div class="stop-dot"></div>
       <div class="stop-content">
         <div class="stop-header">
-          <span class="stop-title">${parada.name || "Parada"}</span>
+          <span class="stop-title">${parada.nome_formatado || "Parada"}</span>
           <span class="stop-time">${
             parada.horario_prox ? `⏱️ ${parada.horario_prox}` : ""
           }</span>
@@ -163,8 +163,14 @@ async function initMap(paradas, lista) {
   // Inicializa o mapa apenas uma vez
   if (!mapa) {
     mapa = L.map("map", {
-      attributionControl: false // remove o "Leaflet"
+      attributionControl: false, // remove o "Leaflet"
+      zoomControl: false // remove o controle padrão
     }).setView([-8.05, -34.9], 13);
+
+    // adiciona o controle de zoom no canto inferior direito
+    L.control.zoom({
+      position: 'bottomright'
+    }).addTo(mapa);
 
     // Cria layers apenas uma vez
     if (!lightTiles || !darkTiles) {
