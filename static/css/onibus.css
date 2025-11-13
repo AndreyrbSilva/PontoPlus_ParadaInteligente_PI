@@ -37,17 +37,17 @@ body.dark-mode {
 }
 
 .container {
-  display: flex;
   height: 100vh;
   width: 100vw;
   overflow: hidden;
+  position: relative;
 }
 
 .theme-toggle-map {
   position: absolute;
   top: 15px;
   right: 15px;
-  z-index: 1000; /* 🔝 Fica acima do mapa */
+  z-index: 1000;
   background: rgba(255, 255, 255, 0.9);
   border: none;
   border-radius: 50%;
@@ -80,15 +80,25 @@ body.dark-mode .theme-toggle-map .icon {
 
 /* ==== SIDEBAR ==== */
 .sidebar {
+  position: fixed;          /* deixa sobre o mapa */
+  top: 0;
+  left: 0;
   width: 400px;
+  height: 100vh;
   background: #fff;
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
   display: flex;
-  --dot-center-y: 18px;
   flex-direction: column;
   overflow: hidden;
   padding: 0;
   margin: 0;
+  transition: transform 0.3s ease;
+  transform: translateX(0);
+  z-index: 1000; /* fica sobre o mapa */
+}
+
+.sidebar.hidden {
+  transform: translateX(-100%);
 }
 
 body.dark-mode .sidebar {
@@ -104,9 +114,10 @@ body.dark-mode .sidebar {
   background: #ffffff;
   padding: 10px 15px;
   display: flex;
-  align-items: center;
+  align-items: center; /* Alinha tudo verticalmente */
+  justify-content: space-between; /* Voltar à esquerda, X à direita */
   gap: 8px;
-  height: 35px;
+  height: 35px; /* aumenta um pouco para centralizar visualmente */
   border-bottom: 1px solid #ddd;
   position: sticky;
   top: 0;
@@ -328,9 +339,13 @@ body.dark-mode .bus-header h1 {
 
 /* ====== MAPA ====== */
 #map {
-  flex: 1;
+  position: fixed; /* cobre a tela inteira */
+  top: 0;
+  left: 0;
+  width: 100vw;
   height: 100vh;
-  width: 100%;
+  z-index: 1; /* fica atrás da sidebar */
+  transition: none; /* não precisa mais de margin-left */
 }
 
 /* Remove o fundo branco do número dentro do selo azul */
@@ -638,7 +653,7 @@ body.dark-mode .theme-toggle-map {
 }
 
 body.dark-mode .theme-toggle-map:hover {
-  background: rgba(40, 40, 40, 0.6);
+  background: rgba(255, 255, 255, 0.15);
   transform: scale(1.08);
 }
 
@@ -711,9 +726,9 @@ body.dark-mode .theme-toggle-map .icon {
 /* --- Botões --- */
 .leaflet-control-zoom-in,
 .leaflet-control-zoom-out {
-  width: 42px;
-  height: 42px;
-  font-size: 20px;
+  width: 54px;
+  height: 54px;
+  font-size: 26px;
   font-weight: 600;
   cursor: pointer;
   transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
@@ -728,11 +743,39 @@ body.dark-mode .theme-toggle-map .icon {
 
 /* --- Bordas arredondadas --- */
 .leaflet-control-zoom-in {
-  border-radius: 14px 14px 0 0;
+  border-radius: 16px 16px 0 0;
 }
 
 .leaflet-control-zoom-out {
-  border-radius: 0 0 14px 14px;
+  border-radius: 0 0 16px 16px;
+}
+
+/* --- Alinhamento do zoom e créditos na mesma linha inferior --- */
+.leaflet-bottom.leaflet-right .leaflet-control-zoom {
+  position: fixed;        /* fixa em relação à tela */
+  bottom: 10px;           /* encostado na borda inferior */
+  right: 10px;            /* encostado na borda direita */
+  margin: 0;
+  z-index: 1002;          /* acima de tudo */
+}
+
+/* move o container de créditos para a esquerda do zoom */
+.leaflet-control-attribution {
+  position: fixed !important;
+  bottom: 8px !important;   /* mesmo nível do zoom */
+  right: 50px !important;    /* posiciona à esquerda do botão de zoom */
+  z-index: 1001;
+  background: rgba(20, 20, 20, 0.4); /* opcional: leve vidro */
+  backdrop-filter: blur(6px);
+  padding: 2px 8px;
+  border-radius: 8px;
+  color: #ccc !important;
+  font-size: 11px;
+}
+
+.leaflet-control-zoom-in:active,
+.leaflet-control-zoom-out:active {
+  transform: scale(0.2);
 }
 
 /* =========================
@@ -945,4 +988,105 @@ body.dark-mode .leaflet-control-attribution a {
   button, a {
     outline: none;
   }
+}
+
+/* ===== Sidebar colapsável ===== */
+
+/* Botão para abrir a sidebar */
+.open-sidebar-btn {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 10;
+  width: 50px;
+  height: 50px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 20%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.3s, transform 0.3s, opacity 0.4s ease;
+  opacity: 0;
+  pointer-events: none;
+  backdrop-filter: blur(8px) saturate(150%);
+  -webkit-backdrop-filter: blur(8px) saturate(150%);
+  background: rgba(255, 255, 255, 0.45);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+}
+
+.open-sidebar-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.08);
+}
+
+.open-sidebar-btn .material-symbols-outlined {
+  font-size: 32px;
+  color: #333;
+}
+
+body.dark-mode .open-sidebar-btn {
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(36, 36, 36, 0.1);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.6);
+}
+
+body.dark-mode .open-sidebar-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+body.dark-mode .open-sidebar-btn .material-symbols-outlined {
+  color: #f1f1f1;
+}
+
+/* Quando visível */
+.open-sidebar-btn.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+.sidebar.hidden ~ .open-sidebar-btn {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.open-sidebar-btn.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Botão para fechar dentro da sidebar */
+.close-sidebar-btn {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: rgb(0, 0, 0);
+  font-size: 26px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-origin: center center;
+  transition: color 0.3s ease, transform 0.2s ease;
+  z-index: 1101;
+}
+
+.close-sidebar-btn:hover{
+  transform: translateY(-50%) scale(1.2);
+}
+
+body.dark-mode .close-sidebar-btn{
+  color: rgb(250, 250, 250);
+}
+
+/* Transição da sidebar */
+.sidebar {
+  transition: transform 0.3s ease;
+  transform: translateX(0);
+}
+
+.sidebar.hidden {
+  transform: translateX(-100%);
 }

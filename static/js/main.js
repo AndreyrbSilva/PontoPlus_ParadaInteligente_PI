@@ -174,6 +174,11 @@ function renderBusCard(bus, tempoMin) {
       <span class="line-name">— ${bus.linha_nome}</span>
     </div>
 
+    <div class="bus-price">
+      <i class="fa-solid fa-ticket"></i>  
+      R$ ${bus.tarifa ?? "4,30"}
+    </div>
+    
     <div class="bus-times" id="prox-${bus.onibus_id}">
       <span>PRÓXIMOS:</span>
       ${proximos.map((t) => `<button>${t} Min</button>`).join(" ")}

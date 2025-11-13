@@ -67,7 +67,7 @@ function carregarParadas(paradas) {
       <div class="stop-dot"></div>
       <div class="stop-content">
         <div class="stop-header">
-          <span class="stop-title">${parada.name || "Parada"}</span>
+          <span class="stop-title">${parada.nome_formatado || "Parada"}</span>
           <span class="stop-time">${
             parada.horario_prox ? `⏱️ ${parada.horario_prox}` : ""
           }</span>
@@ -163,8 +163,14 @@ async function initMap(paradas, lista) {
   // Inicializa o mapa apenas uma vez
   if (!mapa) {
     mapa = L.map("map", {
-      attributionControl: false // remove o "Leaflet"
+      attributionControl: false, // remove o "Leaflet"
+      zoomControl: false // remove o controle padrão
     }).setView([-8.05, -34.9], 13);
+
+    // adiciona o controle de zoom no canto inferior direito
+    L.control.zoom({
+      position: 'bottomright'
+    }).addTo(mapa);
 
     // Cria layers apenas uma vez
     if (!lightTiles || !darkTiles) {
@@ -225,21 +231,36 @@ paradas.forEach((p, index) => { // Adiciona index no loop
       .bindPopup(`<strong>${p.name}</strong>`);
 
     // Evento de clique no marcador
-    marker.on('click', () => {
-      mapa.setView([lat, lon], 16); // Ajusta o zoom para a parada no mapa
+      marker.on('click', () => {
+      // Abre a sidebar se estiver fechada
+      const sidebar = document.querySelector(".sidebar");
+      const openBtn = document.getElementById("openSidebarBtn");
+      const container = document.querySelector(".container");
 
+      if (sidebar.classList.contains("hidden")) {
+        openBtn.classList.remove("visible");
+        sidebar.classList.remove("hidden");
+        container.classList.add("sidebar-open");
+        container.classList.remove("sidebar-hidden");
+
+        setTimeout(() => {
+          if (mapa) mapa.invalidateSize();
+        }, 350);
+      }
+
+      // Centraliza o mapa e abre o item correspondente
+      mapa.setView([lat, lon], 16);
 
       const openItems = lista.querySelectorAll(".stop-item.open");
       openItems.forEach(openItem => openItem.classList.remove("open"));
 
-      // Seleciona o item correspondente na lista da sidebar
       const item = lista.querySelector(`.stop-item[data-index="${index}"]`);
       if (item) {
-        item.classList.add('open'); // Abre a parada na sidebar
-        // Se quiser simular um clique para expandir as informações da parada
+        item.classList.add('open');
         item.scrollIntoView({ behavior: "smooth", block: "center" });
       }
     });
+
 
       marcadores.push(marker);
     }
@@ -352,3 +373,36 @@ paradas.forEach((p, index) => { // Adiciona index no loop
     console.error("Erro ao desenhar rota da linha:", err);
   }
 }
+
+document.addEventListener("DOMContentLoaded", () => {
+  const container = document.querySelector(".container");
+  const sidebar = document.querySelector(".sidebar");
+  const openBtn = document.getElementById("openSidebarBtn");
+  const closeBtn = document.getElementById("closeSidebarBtn");
+
+  // Fecha a sidebar
+  closeBtn.addEventListener("click", () => {
+    sidebar.classList.add("hidden");
+    container.classList.remove("sidebar-open");
+    container.classList.add("sidebar-hidden");
+
+    setTimeout(() => openBtn.classList.add("visible"), 300);
+
+    // Atualiza tamanho do mapa (Leaflet precisa disso!)
+    setTimeout(() => {
+      if (mapa) mapa.invalidateSize();
+    }, 350);
+  });
+
+  // Abre a sidebar
+  openBtn.addEventListener("click", () => {
+    openBtn.classList.remove("visible");
+    sidebar.classList.remove("hidden");
+    container.classList.add("sidebar-open");
+    container.classList.remove("sidebar-hidden");
+
+    setTimeout(() => {
+      if (mapa) mapa.invalidateSize();
+    }, 350);
+  });
+});
