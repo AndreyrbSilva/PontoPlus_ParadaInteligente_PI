@@ -27,7 +27,7 @@ OSRM_TABLE_MAX = int(os.getenv("OSRM_TABLE_MAX", "95"))
 # -------------------------------
 MONGO_URI = os.getenv(
     "MONGO_URI",
-    "mongodb+srv://PontoPlus:txcYW0zUnClvs7TN@pontoplus.v7tiqaf.mongodb.net/?retryWrites=true&w=majority&appName=PontoPlus"
+    "mongodb+srv://PontoPlus:XpDvLjiYngAimD6l@pontoplus.v7tiqaf.mongodb.net/?retryWrites=true&w=majority&appName=PontoPlus"
 )
 client = MongoClient(MONGO_URI)
 db = client["PontoPlus"]
@@ -35,13 +35,33 @@ db = client["PontoPlus"]
 # -------------------------------
 # Páginas
 # -------------------------------
+from flask import render_template, request, redirect, url_for
+
 @app.route("/")
-def home():
+def login():
+    # Página inicial agora é o login
+    return render_template("login.html")
+
+@app.route("/login", methods=["POST"])
+def fazer_login():
+    usuario = request.form.get("usuario")
+    senha = request.form.get("senha")
+
+    # 🔒 Validação simples (pode conectar ao banco depois)
+    if usuario == "admin" and senha == "123":
+        return redirect(url_for("painel"))
+    else:
+        return render_template("login.html", erro="Usuário ou senha inválidos")
+
+@app.route("/painel")
+def painel():
+    # O antigo "index.html" agora virou o painel
     return render_template("index.html")
 
 @app.route("/onibus/<onibus_id>")
 def onibus_page(onibus_id):
     return render_template("onibus.html", onibus_id=onibus_id)
+
 
 # -------------------------------
 # Helpers

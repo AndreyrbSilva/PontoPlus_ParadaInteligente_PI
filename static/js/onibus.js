@@ -167,6 +167,8 @@ async function initMap(paradas, lista) {
       zoomControl: false // remove o controle padrão
     }).setView([-8.05, -34.9], 13);
 
+    mapa.on("click", e => criarRipple(e.latlng, mapa, 1));
+
     // adiciona o controle de zoom no canto inferior direito
     L.control.zoom({
       position: 'bottomright'
@@ -232,10 +234,9 @@ paradas.forEach((p, index) => { // Adiciona index no loop
 
     // Evento de clique no marcador
       marker.on('click', () => {
-      // Abre a sidebar se estiver fechada
-      const sidebar = document.querySelector(".sidebar");
-      const openBtn = document.getElementById("openSidebarBtn");
-      const container = document.querySelector(".container");
+        const sidebar = document.querySelector(".sidebar");
+        const openBtn = document.getElementById("openSidebarBtn");
+        const container = document.querySelector(".container");
 
       if (sidebar.classList.contains("hidden")) {
         openBtn.classList.remove("visible");
@@ -248,7 +249,11 @@ paradas.forEach((p, index) => { // Adiciona index no loop
         }, 350);
       }
 
-      // Centraliza o mapa e abre o item correspondente
+      mapa.once("moveend", () => {
+        criarRipple([lat, lon], mapa, 2); // ping lento
+        setTimeout(() => criarRipple([lat, lon], mapa, 2), 1000); // segundo ping // segundo com leve atraso
+      });
+
       mapa.setView([lat, lon], 16);
 
       const openItems = lista.querySelectorAll(".stop-item.open");
@@ -406,3 +411,28 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 350);
   });
 });
+
+function criarRipple(latlng, mapa, tipo = 1) {
+  const mapEl = document.getElementById("map");
+  const ripple = document.createElement("div");
+  ripple.className = tipo === 2 ? "click-ripple-parada" : "click-ripple";
+  mapEl.appendChild(ripple);
+
+  // Função que atualiza a posição do ripple conforme o mapa muda
+  const atualizarPosicao = () => {
+    const point = mapa.latLngToContainerPoint(latlng);
+    ripple.style.left = `${point.x}px`;
+    ripple.style.top = `${point.y}px`;
+  };
+
+  // Atualiza já e também se o mapa se mover (p.ex. centralizar parada)
+  atualizarPosicao();
+  mapa.on("move", atualizarPosicao);
+
+  // Remove o ripple ao final da animação
+  ripple.addEventListener("animationend", () => {
+    ripple.remove();
+    mapa.off("move", atualizarPosicao); // para de atualizar depois
+  });
+}
+
