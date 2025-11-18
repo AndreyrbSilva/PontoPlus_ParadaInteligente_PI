@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Verificação MFA</title>
+    <style>
+        body { font-family: Arial; background:#f2f2f2; }
+        .box {
+            width: 420px; background: #fff; padding: 20px;
+            margin: 80px auto; border-radius: 10px; text-align:center;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+        input { padding: 10px; width: 80%; margin-top: 15px; }
+        button { margin-top: 15px; padding:10px 25px; cursor:pointer; }
+        .erro { color:red; margin-bottom:10px; }
+    </style>
+</head>
+<body>
+
+<div class="box">
+    <h2>Verificação MFA</h2>
+
+    {% if erro %}
+    <p class="erro">{{ erro }}</p>
+    {% endif %}
+
+    <p>Digite o código de 6 dígitos do seu app autenticador:</p>
+
+    <form action="/mfa" method="POST">
+        <input type="text" name="token" placeholder="Código MFA" required />
+        <br>
+        <button type="submit">Verificar</button>
+    </form>
+
+</div>
+
+</body>
+</html>
