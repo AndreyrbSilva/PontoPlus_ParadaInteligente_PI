@@ -224,6 +224,13 @@ body.dark-mode .paradas::-webkit-scrollbar-thumb {
   background: #3b3b3b;
 }
 
+@media (max-width: 1024px) {
+  .paradas {
+    /* Aumenta o padding APENAS no mobile/tablet */
+    padding-bottom: 120px; 
+  }
+}
+
 /* Agrupa o número e o título ao lado do botão Voltar */
 .sidebar-header-top {
   display: flex;
@@ -713,6 +720,9 @@ body.dark-mode .theme-toggle-map .icon {
 
 /* Remove estilos padrão do Leaflet */
 .leaflet-control-zoom a {
+  -webkit-tap-highlight-color: transparent !important;
+  -webkit-touch-callout: none !important;
+  outline: none !important;
   background: transparent !important;
   border: none !important;
   margin: 0 !important;
@@ -721,6 +731,12 @@ body.dark-mode .theme-toggle-map .icon {
   align-items: center;
   justify-content: center;
   color: #111 !important;
+}
+
+.leaflet-control-zoom a:focus,
+.leaflet-control-zoom a:active {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 /* --- Botões --- */
@@ -1100,19 +1116,23 @@ body.dark-mode .close-sidebar-btn{
   transform: translate(-50%, -50%) scale(0);
   animation: rippleEffect 0.6s ease-out forwards;
   pointer-events: none;
-  z-index: 5000; /* acima das camadas do leaflet */
+  z-index: 9999; /* acima das camadas do leaflet */
 }
 
 #map .click-ripple-parada {
   position: absolute;
   width: 14px;
   height: 14px;
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(22, 22, 22, 0.25);
   border-radius: 50%;
   transform: translate(-50%, -50%) scale(0);
   animation: rippleEffectParada 1.6s ease-out forwards; /* mais lento */
   pointer-events: none;
-  z-index: 5000;
+  z-index: 9999;
+}
+
+body.dark-mode #map .click-ripple-parada{
+  background: rgba(255, 255, 255, 0.35);
 }
 
 body.dark-mode #map .click-ripple {
@@ -1138,4 +1158,292 @@ body.dark-mode #map .click-ripple {
     transform: translate(-50%, -50%) scale(7);
     opacity: 0;
   }
+}
+
+/* =========================
+   Botão de Geolocalização (Estilo "Vidro" igual ao Zoom)
+   ========================= */
+
+/* Container do botão (faz o papel do .leaflet-control-zoom) */
+.custom-map-controls {
+  position: fixed;        /* Fixa em relação à tela, igual ao zoom */
+  bottom: 80px;          /* 10px (zoom bottom) + ~110px (altura do zoom) + 10px (espaço) */
+  right: 9px;   
+  z-index: 1002; 
+  
+  width: 31px;        
+  height: 31px;          
+  border-radius: 14px;   
+  
+  /* Fundo de vidro idêntico */
+  backdrop-filter: blur(8px) saturate(150%);
+  -webkit-backdrop-filter: blur(8px) saturate(150%);
+  background: rgba(255, 255, 255, 0.45);
+  border: none !important;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+  
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+/* O botão clicável dentro do container */
+.locate-btn {
+  width: 100%;
+  height: 100%;
+  background: transparent; /* Fundo transparente pois o container já tem a cor */
+  border: none;
+  outline: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  
+  /* Transição de hover */
+  transition: transform 0.25s ease, background 0.25s ease;
+}
+
+/* O Ícone SVG (faz o papel do texto do zoom) */
+.locate-icon-svg {
+  width: 18;  /* Tamanho visual compatível com a fonte 26px do zoom */
+  height: 18px;
+  fill: #111;   /* Cor escura padrão */
+  transition: fill 0.4s ease;
+}
+
+/* --- Hover Effect (Igual ao Zoom) --- */
+.locate-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.08); /* Efeito de "crescer" */
+}
+
+/* --- Active Effect (Clique) --- */
+.locate-btn:active {
+  transform: scale(0.9); /* Leve encolhida ao clicar */
+}
+
+/* =========================
+   Tema Escuro (Geolocalização)
+   ========================= */
+
+/* Fundo escuro no container */
+body.dark-mode .custom-map-controls {
+  background: rgba(0, 0, 0, 0.45);
+  border: none;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.6);
+}
+
+/* Ícone claro */
+body.dark-mode .locate-icon-svg {
+  fill: #f1f1f1; 
+}
+
+/* Hover no modo escuro */
+body.dark-mode .locate-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* --- Estilo do Marcador Pulsante (Usuário) --- */
+.user-location-marker-container {
+  position: relative;
+  /* O importante aqui é que não tenha pointer-events,
+     para o clique passar direto para o mapa se não clicar no centro exato */
+  pointer-events: none; 
+}
+
+/* O ponto central fixo */
+.user-dot {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 14px;
+  height: 14px;
+  background-color: #4285F4; /* Azul estilo Google Maps */
+  border: 2px solid white;
+  border-radius: 50%;
+  box-shadow: 0 0 4px rgba(0,0,0,0.4);
+  z-index: 2;
+}
+
+/* O círculo que pulsa e se expande */
+.user-pulse {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 50px; /* Tamanho máximo da onda */
+  height: 50px;
+  background-color: rgba(66, 133, 244, 0.4); /* Azul transparente */
+  border-radius: 50%;
+  animation: pulse-animation 2s infinite ease-out;
+  z-index: 1;
+  /* Fundamental: pointer-events none aqui garante que a área da onda
+     não bloqueie cliques nas paradas próximas */
+  pointer-events: none;
+}
+
+@keyframes pulse-animation {
+  0% {
+    transform: translate(-50%, -50%) scale(0.3);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.5);
+    opacity: 0;
+  }
+}
+
+/* Adicione no seu CSS */
+.ripple-marker {
+  background: rgba(0, 102, 255, 0.4);
+  border-radius: 50%;
+  animation: ripple-effect 1s ease-out forwards;
+  pointer-events: none; /* Importante para não bloquear cliques */
+}
+
+@keyframes ripple-effect {
+  0% {
+    transform: scale(0.1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(3);
+    opacity: 0;
+  }
+}
+
+/* ===== ESTILOS GERAIS DO POPUP ===== */
+.popup-card {
+  width: 250px;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+  position: relative;
+  font-family: "Poppins", sans-serif;
+}
+
+/* Triângulo (seta para baixo) */
+.popup-card::after {
+  content: "";
+  position: absolute;
+  bottom: -14px;
+  left: 40%;
+  width: 0;
+  height: 0;
+  border-left: 14px solid transparent;
+  border-right: 14px solid transparent;
+  border-top: 14px solid #fff;
+}
+
+/* ===== CABEÇALHO ===== */
+.popup-header {
+  padding: 10px 14px;
+  font-weight: 600;
+  background: #005f99;
+  color: #fff;
+  font-size: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 8px 8px 0 0;
+}
+
+/* ===== SUBHEADER ===== */
+.popup-subheader {
+  padding: 12px 14px;
+  background: #e5e5e5;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+/* ===== CONTEÚDO ===== */
+.popup-body {
+  padding: 14px;
+  background: #f7f7f7;
+}
+
+.popup-time {
+  font-weight: 600;
+  margin-bottom: 6px;
+  font-size: 15px;
+}
+
+.popup-ref {
+  font-size: 14px;
+  color: #555;
+}
+
+
+
+/* ======================================================= */
+/*                     🌙 MODO ESCURO                      */
+/* ======================================================= */
+
+body.dark-mode .popup-card {
+  background: #2e2e2e;
+  color: #ddd;
+}
+
+body.dark-mode .popup-card::after {
+  border-top-color: #2e2e2e;
+}
+
+body.dark-mode .popup-header {
+  background: #0067a8; /* mesmo azul do tema claro */
+  color: #fff;
+}
+
+body.dark-mode .popup-subheader {
+  background: #3d3d3d;
+  color: #eee;
+}
+
+body.dark-mode .popup-body {
+  background: #333;
+}
+
+body.dark-mode .popup-ref {
+  color: #bbb;
+}
+
+/* Remove fundo padrão do popup */
+.leaflet-popup-content-wrapper {
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+}
+
+/* Remove o fundo da área de conteúdo */
+.leaflet-popup-content {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Remove a seta padrão do leaflet */
+.leaflet-popup-tip {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Botão de fechar do Leaflet */
+.leaflet-popup-close-button {
+  font-size: 24px !important;      /* tamanho do X */
+  color: #ffffff !important;       /* cor do X */
+  width: 32px !important;
+  height: 32px !important;
+  line-height: 28px !important;
+}
+
+/* Remover aquele fundo azul/hover padrão */
+.leaflet-popup-close-button:hover {
+  color: #d1d1d1 !important;       /* cor ao passar o mouse */
+}
+
+
+body.dark-mode .leaflet-popup-close-button {
+  color: #e0e0e0 !important;
+}
+
+body.dark-mode .leaflet-popup-close-button:hover {
+  color: #d1d1d1 !important;
 }

@@ -86,21 +86,42 @@ function carregarParadas(paradas) {
     item.addEventListener("click", () => {
       const isCurrentlyOpen = item.classList.contains("open");
 
+      // Fecha todos os itens abertos
       const openItems = lista.querySelectorAll(".stop-item.open");
       openItems.forEach((openItem) => openItem.classList.remove("open"));
 
       const clickedLat = item.dataset.lat;
       const clickedLon = item.dataset.lon;
 
+      // Centraliza o mapa na parada clicada
       if (!isCurrentlyOpen && mapa && clickedLat && clickedLon) {
-        mapa.setView([clickedLat, clickedLon], 16);
+        centralizarComOffset(clickedLat, clickedLon);
+
+        // Cria o efeito ripple duplo
+        criarRipple([clickedLat, clickedLon], mapa, 2);  // primeiro ripple
+        setTimeout(() => {
+          criarRipple([clickedLat, clickedLon], mapa, 2);  // segundo ripple
+        }, 900); // tempo entre os dois ripples
+
+        // Espera a animação de centralização terminar para abrir o pop-up
+        mapa.once('moveend', () => {
+          const marker = window.marcadores[index];  // Obtém o marcador correspondente à parada
+          if (marker) {
+            marker.openPopup(); // Abre o pop-up do marcador após a centralização
+          }
+        });
       } else if (isCurrentlyOpen && mapa) {
+        const marker = window.marcadores[index];
+        if (marker) {
+          marker.openPopup(); // Abre o pop-up da parada
+        }
       }
 
       if (!isCurrentlyOpen) {
         item.classList.add("open");
       }
     });
+
 
     lista.appendChild(item);
   });
@@ -156,226 +177,460 @@ themeToggle.addEventListener('click', () => {
   }, 900);
 });
 
+function irParaParada(lat, lon, index, lista) {
+  const sidebar = document.querySelector(".sidebar");
+  const container = document.querySelector(".container");
+  const openBtn = document.getElementById("openSidebarBtn");
 
-async function initMap(paradas, lista) {
-  const MAPTILER_KEY = "WY3jUNR2NAoodGvJ7vnY";
-
-  // Inicializa o mapa apenas uma vez
-  if (!mapa) {
-    mapa = L.map("map", {
-      attributionControl: false, // remove o "Leaflet"
-      zoomControl: false // remove o controle padrão
-    }).setView([-8.05, -34.9], 13);
-
-    mapa.on("click", e => criarRipple(e.latlng, mapa, 1));
-
-    // adiciona o controle de zoom no canto inferior direito
-    L.control.zoom({
-      position: 'bottomright'
-    }).addTo(mapa);
-
-    // Cria layers apenas uma vez
-    if (!lightTiles || !darkTiles) {
-      lightTiles = L.tileLayer(
-        `https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${MAPTILER_KEY}`,
-        { tileSize: 512, zoomOffset: -1 }
-      );
-
-      darkTiles = L.tileLayer(
-        `https://api.maptiler.com/maps/topo-v2-dark/{z}/{x}/{y}.png?key=${MAPTILER_KEY}`,
-        { tileSize: 512, zoomOffset: -1 }
-      );
-    }
-
-    // Função para alternar tema
-    function setTheme(theme) {
-      if (mapa.hasLayer(lightTiles)) mapa.removeLayer(lightTiles);
-      if (mapa.hasLayer(darkTiles)) mapa.removeLayer(darkTiles);
-
-      if (theme === "dark") darkTiles.addTo(mapa);
-      else lightTiles.addTo(mapa);
-
-      localStorage.setItem("theme", theme);
-    }
-
-    // Inicializa tema salvo
-    const savedTheme = localStorage.getItem("theme") || "light";
-    setTheme(savedTheme);
-
-    // Botão de troca de tema
-    document.getElementById("toggleTheme")?.addEventListener("click", () => {
-      setTheme(mapa.hasLayer(lightTiles) ? "dark" : "light");
-    });
-
-    // Adiciona créditos manualmente
-    L.control.attribution({ prefix: false }).addTo(mapa);
-    mapa.attributionControl.addAttribution("© OpenStreetMap | © MapTiler");
-  }
-
-  // Remove marcadores e rota anteriores
-  if (window.marcadoresGroup) mapa.removeLayer(window.marcadoresGroup);
-  if (window.rotaLayer) mapa.removeLayer(window.rotaLayer);
-
-
- const iconImage = L.icon({
-  iconUrl: '/static/images/parada-onibus.png', // Caminho do PNG
-  iconSize: [30, 30],  // Tamanho do ícone
-  iconAnchor: [15, 15],  // Ancoragem do ícone (ponto onde o marcador será posicionado)
-  popupAnchor: [0, -15]  // Posição do pop-up
-});
-
-  // Adiciona marcadores das paradas
-const marcadores = [];
-paradas.forEach((p, index) => { // Adiciona index no loop
-  if (p.localizacao?.coordinates) {
-    const [lon, lat] = p.localizacao.coordinates;
-    const marker = L.marker([lat, lon], { icon: iconImage })
-      .bindPopup(`<strong>${p.name}</strong>`);
-
-    // Evento de clique no marcador
-      marker.on('click', () => {
-        const sidebar = document.querySelector(".sidebar");
-        const openBtn = document.getElementById("openSidebarBtn");
-        const container = document.querySelector(".container");
-
+  const abrirSidebar = () => {
+    return new Promise(resolve => {
       if (sidebar.classList.contains("hidden")) {
         openBtn.classList.remove("visible");
         sidebar.classList.remove("hidden");
         container.classList.add("sidebar-open");
         container.classList.remove("sidebar-hidden");
 
+        // Espera animação terminar
         setTimeout(() => {
-          if (mapa) mapa.invalidateSize();
+          mapa.invalidateSize();
+          resolve();
         }, 350);
+      } else {
+        resolve();
       }
+    });
+  };
 
-      mapa.once("moveend", () => {
-        criarRipple([lat, lon], mapa, 2); // ping lento
-        setTimeout(() => criarRipple([lat, lon], mapa, 2), 1000); // segundo ping // segundo com leve atraso
-      });
+  abrirSidebar().then(() => {
+    // Atualiza o mapa após abrir a sidebar
+    mapa.once("moveend", () => {
+      criarRipple([lat, lon], mapa, 2); // Adiciona ripple na parada
+      setTimeout(() => criarRipple([lat, lon], mapa, 2), 900);
+    });
 
-      mapa.setView([lat, lon], 16);
+    // Move o mapa para a localização da parada
+    mapa.setView([lat, lon], 16, { animate: true });
 
-      const openItems = lista.querySelectorAll(".stop-item.open");
-      openItems.forEach(openItem => openItem.classList.remove("open"));
+    // Abre a parada correspondente na sidebar
+    const abertas = lista.querySelectorAll(".stop-item.open");
+    abertas.forEach(item => item.classList.remove("open"));
 
-      const item = lista.querySelector(`.stop-item[data-index="${index}"]`);
-      if (item) {
-        item.classList.add('open');
-        item.scrollIntoView({ behavior: "smooth", block: "center" });
+    const item = lista.querySelector(`.stop-item[data-index="${index}"]`);
+    if (item) {
+      item.classList.add("open");
+      item.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  });
+}
+
+function atualizarMarcadores(paradas) {
+  if (!mapa) return;
+  if (window.marcadoresGroup) {
+    mapa.removeLayer(window.marcadoresGroup);
+  }
+
+  const iconImage = L.icon({
+    iconUrl: '/static/images/parada-onibus.png',
+    iconSize: [30, 30],
+    iconAnchor: [15, 15],
+    popupAnchor: [0, -15]
+  });
+
+  window.marcadores = paradas.map((p, index) => {
+    if (!p.localizacao?.coordinates) return null;
+    const [lon, lat] = p.localizacao.coordinates;
+
+    const marker = L.marker([lat, lon], { icon: iconImage })
+      .bindPopup(criarConteudoPopup(p));
+
+    marker.on("click", () => {
+      // 1. Centralizar o mapa na parada
+      centralizarComOffset(lat, lon);
+
+      // 2. Criar ripple na parada
+      criarRipple([lat, lon], mapa, 2);
+      setTimeout(() => {
+        criarRipple([lat, lon], mapa, 2);
+      }, 900);
+
+      // 3. Verificar se a sidebar está oculta (minimizada)
+      const sidebar = document.querySelector(".sidebar");
+      const container = document.querySelector(".container");
+
+      // Se a sidebar estiver oculta, abre com animação
+      if (sidebar.classList.contains("hidden")) {
+        const openBtn = document.getElementById("openSidebarBtn");
+
+        // Função para abrir a sidebar com animação
+        const abrirSidebar = () => {
+          return new Promise(resolve => {
+            openBtn.classList.remove("visible");
+            sidebar.classList.remove("hidden");
+            container.classList.add("sidebar-open");
+            container.classList.remove("sidebar-hidden");
+
+            // Espera animação terminar
+            setTimeout(() => {
+              mapa.invalidateSize();
+              resolve();
+            }, 10); // Ajuste o tempo de animação, se necessário
+          });
+        };
+
+        // Abre a sidebar e depois exibe as informações da parada
+        abrirSidebar().then(() => {
+          // Mostrar informações da parada na sidebar
+          const item = document.querySelector(`.stop-item[data-index="${index}"]`);
+          if (item) {
+            document.querySelectorAll(".stop-item.open")
+              .forEach(it => it.classList.remove("open"));
+
+            item.classList.add("open");
+            item.scrollIntoView({ behavior: "smooth", block: "center" });
+          }
+        });
+      } else {
+        // Se a sidebar já estiver aberta, apenas mostra as informações da parada
+        const item = document.querySelector(`.stop-item[data-index="${index}"]`);
+        if (item) {
+          document.querySelectorAll(".stop-item.open")
+            .forEach(it => it.classList.remove("open"));
+
+          item.classList.add("open");
+          item.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
       }
     });
 
+    return marker;
+  }).filter(Boolean);
 
+  window.marcadoresGroup = L.featureGroup(marcadores).addTo(mapa);
+}
+
+async function initMap(paradas) {
+  const MAPTILER_KEY = "WY3jUNR2NAoodGvJ7vnY";
+  
+  // Inicializa o mapa apenas uma vez
+  if (!mapa) {
+    const myRenderer = L.svg({ padding: 2.0 });
+
+    mapa = L.map("map", {
+      attributionControl: false, 
+      zoomControl: false,
+      renderer: myRenderer // Usa o renderizador otimizado
+    }).setView([-8.05, -34.9], 13);
+    
+    mapa.on("click", e => criarRipple(e.latlng, mapa, 1));
+
+    // ======================================================
+// INÍCIO DA ADIÇÃO: Botão de Geolocalização e Marcador Pulsante
+// ======================================================
+
+// 1. CRIAÇÃO DO PANE (CAMADA) PARA O USUÁRIO
+// Isso é CRUCIAL para que o ponto azul fique EM BAIXO dos ícones de ônibus.
+// Marcadores normais usam zIndex 600. Usaremos 550 para ficar abaixo.
+if (!mapa.getPane('userLocationPane')) {
+  mapa.createPane('userLocationPane');
+  mapa.getPane('userLocationPane').style.zIndex = 550;
+}
+
+// 2. INJETAR O BOTÃO HTML NO MAPA
+const mapContainer = document.getElementById('map');
+// Verifica se já não existe para não duplicar
+if (!document.querySelector('.custom-map-controls')) {
+  const customControls = document.createElement('div');
+  customControls.className = 'custom-map-controls leaflet-bar'; // leaflet-bar adiciona estilo padrão
+  // Ícone SVG de mira
+  customControls.innerHTML = `
+    <button class="locate-btn" title="Onde estou?">
+       <svg class="locate-icon-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
+    </button>
+  `;
+  mapContainer.appendChild(customControls);
+
+  // 3. LÓGICA DE CLIQUE E GEOLOCALIZAÇÃO
+  const btnLocate = customControls.querySelector('.locate-btn');
+  let userMarker = null;
+
+  btnLocate.addEventListener('click', () => {
+    if (!navigator.geolocation) {
+      alert("Seu navegador não suporta geolocalização.");
+      return;
+    }
+
+    btnLocate.style.opacity = '0.5';
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        btnLocate.style.opacity = '1';
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+
+        if (userMarker) {
+          mapa.removeLayer(userMarker);
+        }
+
+        const userIcon = L.divIcon({
+          className: 'user-location-marker-container',
+          html: '<div class="user-pulse"></div><div class="user-dot"></div>',
+          iconSize: [20, 20], 
+          iconAnchor: [10, 10] 
+        });
+
+        userMarker = L.marker([lat, lon], {
+          icon: userIcon,
+          pane: 'userLocationPane', 
+          interactive: false 
+        }).addTo(mapa);
+
+        centralizarComOffset(lat, lon);
+      },
+      (error) => {
+        btnLocate.style.opacity = '1';
+        let msg = "Erro ao obter localização.";
+        if (error.code === 1) msg = "Precisamos da sua permissão para acessar a localização.";
+        console.error("Erro Geo:", error);
+        alert(msg);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  });
+}
+    L.control.zoom({ position: 'bottomright' }).addTo(mapa);
+    L.control.attribution({ prefix: false }).addTo(mapa);
+    mapa.attributionControl.addAttribution("© OpenStreetMap | © MapTiler");
+
+    if (!lightTiles || !darkTiles) {
+      lightTiles = L.tileLayer(`https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${MAPTILER_KEY}`, { tileSize: 512, zoomOffset: -1 });
+      darkTiles = L.tileLayer(`https://api.maptiler.com/maps/topo-v2-dark/{z}/{x}/{y}.png?key=${MAPTILER_KEY}`, { tileSize: 512, zoomOffset: -1 });
+    }
+    
+    const savedTheme = localStorage.getItem("theme") || "light";
+    if (savedTheme === "dark") darkTiles.addTo(mapa);
+    else lightTiles.addTo(mapa);
+
+    // Botão de troca de tema
+    document.getElementById("toggleTheme")?.addEventListener("click", () => {
+      const newTheme = mapa.hasLayer(lightTiles) ? "dark" : "light";
+      if (newTheme === "dark") { mapa.removeLayer(lightTiles); darkTiles.addTo(mapa); }
+      else { mapa.removeLayer(darkTiles); lightTiles.addTo(mapa); }
+      localStorage.setItem("theme", newTheme);
+    });
+  }
+
+  // Remove camadas anteriores para não duplicar ao recarregar
+  if (window.marcadoresGroup) mapa.removeLayer(window.marcadoresGroup);
+  if (window.rotaLayer) mapa.removeLayer(window.rotaLayer);
+
+  // 1. ADICIONAR MARCADORES
+  const iconImage = L.icon({
+    iconUrl: '/static/images/parada-onibus.png',
+    iconSize: [30, 30],
+    iconAnchor: [15, 15],
+    popupAnchor: [0, -15]
+  });
+
+  const marcadores = [];
+  paradas.forEach((p, index) => {
+    if (p.localizacao?.coordinates) {
+      const [lon, lat] = p.localizacao.coordinates;
+      const marker = L.marker([lat, lon], { icon: iconImage })
+        .bindPopup(criarConteudoPopup(p));
+
+      marker.on("click", () => {
+        centralizarComOffset(lat, lon);
+        criarRipple([lat, lon], mapa, 2);
+        const item = document.querySelector(`.stop-item[data-index="${index}"]`);
+        if (item) {
+          document.querySelectorAll(".stop-item.open").forEach(it => it.classList.remove("open"));
+          item.classList.add("open");
+          item.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      });
       marcadores.push(marker);
     }
   });
+
   if (marcadores.length) {
     window.marcadoresGroup = L.featureGroup(marcadores).addTo(mapa);
   }
 
-  // Desenha rota
+  // 2. CÁLCULO E DESENHO DA ROTA (IDA/VOLTA)
   try {
     const linhaId = document.getElementById("linhaNumero").textContent.trim();
-    const resp = await fetch(`/api/linha/L${linhaId}`);
-    const data = await resp.json();
-    const shape = data.linha?.shape || data.shape;
+    
+    // Funções auxiliares de geometria
+    const closestIndex = (target, coordsArr) => {
+      let minDist = Infinity, minIndex = 0;
+      for (let i = 0; i < coordsArr.length; i++) {
+        const d = Math.hypot(coordsArr[i][0] - target[0], coordsArr[i][1] - target[1]);
+        if (d < minDist) { minDist = d; minIndex = i; }
+      }
+      return minIndex;
+    };
 
-    if (!shape?.coordinates?.length) return console.warn("Nenhum shape encontrado", linhaId);
+    const getSegment = (coordsArr, startIdx, endIdx) => {
+      if (startIdx <= endIdx) return coordsArr.slice(startIdx, endIdx + 1);
+      return coordsArr.slice(startIdx).concat(coordsArr.slice(0, endIdx + 1));
+    };
+
+    // Busca dados necessários
+    const [respLinha, respIda, respVolta] = await Promise.all([
+       fetch(`/api/linha/L${linhaId}`),
+       fetch(`/api/paradas_linha/${linhaId}?sentido=ida`),
+       fetch(`/api/paradas_linha/${linhaId}?sentido=volta`)
+    ]);
+    
+    const dataLinha = await respLinha.json();
+    const paradasIda = await respIda.json();
+    const paradasVolta = await respVolta.json();
+
+    const shape = dataLinha.linha?.shape || dataLinha.shape;
+    if (!shape?.coordinates?.length) return;
 
     const coords = shape.coordinates.map((c) => [c[1], c[0]]);
-    const metade = Math.floor(coords.length / 2);
-    const coordsIda = coords.slice(0, metade);
-    const coordsVolta = coords.slice(metade);
 
-    const estiloAtivo = { weight: 10, opacity: 0.95 };
-    const estiloInativo = { weight: 8, opacity: 0.45 };
+    // Processa coordenadas das paradas
+    const getCoords = (list) => (list || []).filter(p => p.localizacao?.coordinates).map(p => [p.localizacao.coordinates[1], p.localizacao.coordinates[0]]);
+    const coordsIdaStops = getCoords(paradasIda);
+    const coordsVoltaStops = getCoords(paradasVolta);
 
+    // Fatia o shape
+    let segmentIda = [], segmentVolta = [];
+    
+    if (coordsIdaStops.length >= 2) {
+        const start = closestIndex(coordsIdaStops[0], coords);
+        const end = closestIndex(coordsIdaStops[coordsIdaStops.length - 1], coords);
+        segmentIda = getSegment(coords, start, end);
+    } else { segmentIda = coords.slice(); } // Fallback
+
+    if (coordsVoltaStops.length >= 2) {
+        const start = closestIndex(coordsVoltaStops[0], coords);
+        const end = closestIndex(coordsVoltaStops[coordsVoltaStops.length - 1], coords);
+        segmentVolta = getSegment(coords, start, end);
+    } else { segmentVolta = coords.slice(); } // Fallback
+
+    // Configura Panes e Estilos
     if (!mapa.getPane("shadowPane")) {
       mapa.createPane("shadowPane");
-      const pane = mapa.getPane("shadowPane");
-      pane.style.zIndex = 350;
-      pane.style.pointerEvents = "none";
+      mapa.getPane("shadowPane").style.zIndex = 350;
+      mapa.getPane("shadowPane").style.pointerEvents = "none";
     }
 
-    const makeShadow = (latlngs, weight) => L.polyline(latlngs, {
-      color: "#7d7d7dff",
-      weight: Math.max(2, weight + 7),
-      opacity: 0.13,
-      lineCap: "round",
-      lineJoin: "round",
-      pane: "shadowPane",
-      interactive: false
+    // 1. DEFINIÇÃO DE CORES
+    const COR_LIGHT = "#0066ff"; // Azul (Modo Claro)
+    const COR_DARK = "#6bf5ffff";  // Amarelo Ouro (Modo Escuro)
+    
+    // Função que descobre qual cor usar agora
+    const getCorAtual = () => document.body.classList.contains('dark-mode') ? COR_DARK : COR_LIGHT;
+
+    const estiloAtivo = { weight: 10, opacity: 0.95, renderer: mapa.options.renderer };
+    const estiloInativo = { weight: 8, opacity: 0.35, renderer: mapa.options.renderer };
+
+    const makeShadow = (latlngs, w) => L.polyline(latlngs, {
+        color: "#7d7d7dff", weight: Math.max(2, w + 7), opacity: 0.13,
+        lineCap: "round", lineJoin: "round", pane: "shadowPane", interactive: false, renderer: mapa.options.renderer
     });
 
-    const sombraIda = makeShadow(coordsIda, estiloAtivo.weight);
-    const sombraVolta = makeShadow(coordsVolta, estiloInativo.weight);
+    const sombraIda = makeShadow(segmentIda, estiloAtivo.weight);
+    const sombraVolta = makeShadow(segmentVolta, estiloInativo.weight);
 
-    const idaLayer = L.polyline(coordsIda, {
-      color: "#0066ff",
-      weight: estiloAtivo.weight,
-      opacity: estiloAtivo.opacity,
-      lineJoin: "round",
-      lineCap: "round",
-      smoothFactor: 2,
-      pane: "overlayPane"
+    // 2. CRIA AS LINHAS JÁ COM A COR CERTA
+    const idaLayer = L.polyline(segmentIda, { 
+        ...estiloAtivo, 
+        color: getCorAtual(), 
+        smoothFactor: 2, 
+        pane: "overlayPane" 
     });
-
-    const voltaLayer = L.polyline(coordsVolta, {
-      color: "#0066ff",
-      weight: estiloInativo.weight,
-      opacity: estiloInativo.opacity,
-      lineJoin: "round",
-      lineCap: "round",
-      smoothFactor: 2,
-      pane: "overlayPane"
+    
+    const voltaLayer = L.polyline(segmentVolta, { 
+        ...estiloInativo, 
+        color: getCorAtual(), 
+        smoothFactor: 2, 
+        pane: "overlayPane" 
     });
 
     window.rotaLayer = L.layerGroup([sombraIda, sombraVolta, idaLayer, voltaLayer]).addTo(mapa);
-    mapa.fitBounds(L.latLngBounds(coords));
+    
+    const bounds = L.latLngBounds([...segmentIda, ...segmentVolta]);
+    if(bounds.isValid()) mapa.fitBounds(bounds, { padding: [30, 30] });
 
+    // Lógica de Ativação
     const ativarIda = () => {
-      rotaNormal = true;
-      document.getElementById("sentidoAtual").textContent = "Ida";
-
-      idaLayer.setStyle(estiloAtivo);
-      voltaLayer.setStyle(estiloInativo);
-      sombraIda.setStyle({ opacity: 0.25 });
-      sombraVolta.setStyle({ opacity: 0.05 });
-
-      document.getElementById("direcaoLegenda").classList.remove("volta-ativa");
-
-      fetch(`/api/paradas_linha/${linhaId}`)
-        .then(res => res.json())
-        .then(paradas => carregarParadas(paradas));
+        rotaNormal = true;
+        document.getElementById("sentidoAtual").textContent = "Ida";
+        
+        const cor = getCorAtual();
+        idaLayer.setStyle({ ...estiloAtivo, color: cor }).bringToFront();
+        voltaLayer.setStyle({ ...estiloInativo, color: cor });
+        
+        sombraIda.setStyle({ opacity: 0.25 });
+        sombraVolta.setStyle({ opacity: 0.05 });
+        document.getElementById("direcaoLegenda").classList.remove("volta-ativa");
+        
+        carregarParadas(paradasIda);
+        atualizarMarcadores(paradasIda);
     };
 
     const ativarVolta = () => {
-      rotaNormal = false;
-      document.getElementById("sentidoAtual").textContent = "Volta";
+        rotaNormal = false;
+        document.getElementById("sentidoAtual").textContent = "Volta";
+        
+        const cor = getCorAtual();
+        voltaLayer.setStyle({ ...estiloAtivo, color: cor }).bringToFront();
+        idaLayer.setStyle({ ...estiloInativo, color: cor });
+        
+        sombraVolta.setStyle({ opacity: 0.25 });
+        sombraIda.setStyle({ opacity: 0.05 });
+        document.getElementById("direcaoLegenda").classList.add("volta-ativa");
 
-      voltaLayer.setStyle(estiloAtivo);
-      idaLayer.setStyle(estiloInativo);
-      sombraVolta.setStyle({ opacity: 0.25 });
-      sombraIda.setStyle({ opacity: 0.05 });
-
-      document.getElementById("direcaoLegenda").classList.add("volta-ativa");
-
-      fetch(`/api/paradas_linha/${linhaId}`)
-        .then(res => res.json())
-        .then(paradas => carregarParadas([...paradas].reverse()));
+        carregarParadas(paradasVolta);
+        atualizarMarcadores(paradasVolta);
     };
 
+    // Listeners de clique na linha
     idaLayer.on("click", ativarIda);
     voltaLayer.on("click", ativarVolta);
 
-    document.getElementById("toggleDirection")?.addEventListener("click", () => {
-      rotaNormal ? ativarVolta() : ativarIda();
-    });
+    // Listener do botão de inverter sentido (esse aqui podemos substituir pois é local)
+    const btnToggle = document.getElementById("toggleDirection");
+    if(btnToggle) {
+        const newBtn = btnToggle.cloneNode(true);
+        btnToggle.parentNode.replaceChild(newBtn, btnToggle);
+        newBtn.addEventListener("click", () => rotaNormal ? ativarVolta() : ativarIda());
+    }
 
+    // 3. LISTENER DE TROCA DE TEMA (CORRIGIDO: AGORA NÃO QUEBRA O BOTÃO)
+    // Apenas adicionamos o evento de clique ao botão existente
+    const btnTema = document.querySelector('.theme-toggle-map');
+    if (btnTema) {
+        btnTema.addEventListener('click', () => {
+            // Espera um pouquinho (50ms) para o CSS global mudar a classe do body
+            setTimeout(() => {
+                const corFinal = document.body.classList.contains('dark-mode') ? COR_DARK : COR_LIGHT;
+                
+                // Atualiza a cor base das linhas
+                idaLayer.setStyle({ color: corFinal });
+                voltaLayer.setStyle({ color: corFinal });
+
+                // Reaplica o estilo ativo/inativo para garantir a opacidade correta
+                if (rotaNormal) {
+                    idaLayer.setStyle(estiloAtivo); 
+                    voltaLayer.setStyle(estiloInativo);
+                } else {
+                    voltaLayer.setStyle(estiloAtivo);
+                    idaLayer.setStyle(estiloInativo);
+                }
+            }, 50);
+        });
+    }
+
+    // Inicializa
     ativarIda();
+
   } catch (err) {
-    console.error("Erro ao desenhar rota da linha:", err);
+    console.error("Erro ao desenhar rota:", err);
   }
 }
 
@@ -413,26 +668,88 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function criarRipple(latlng, mapa, tipo = 1) {
-  const mapEl = document.getElementById("map");
   const ripple = document.createElement("div");
   ripple.className = tipo === 2 ? "click-ripple-parada" : "click-ripple";
-  mapEl.appendChild(ripple);
 
-  // Função que atualiza a posição do ripple conforme o mapa muda
+  // adiciona no overlayPane (sempre visível)
+  const pane = mapa.getPanes().overlayPane;
+  pane.appendChild(ripple);
+
   const atualizarPosicao = () => {
-    const point = mapa.latLngToContainerPoint(latlng);
-    ripple.style.left = `${point.x}px`;
-    ripple.style.top = `${point.y}px`;
+    const point = mapa.latLngToLayerPoint(latlng);
+    ripple.style.left = point.x + "px";
+    ripple.style.top = point.y + "px";
   };
 
-  // Atualiza já e também se o mapa se mover (p.ex. centralizar parada)
   atualizarPosicao();
   mapa.on("move", atualizarPosicao);
 
-  // Remove o ripple ao final da animação
   ripple.addEventListener("animationend", () => {
     ripple.remove();
-    mapa.off("move", atualizarPosicao); // para de atualizar depois
+    mapa.off("move", atualizarPosicao);
   });
 }
 
+function centralizarComOffset(lat, lon) {
+  const sidebar = document.querySelector(".sidebar");
+  const zoomLevel = 16;
+  
+  // 1. Verificação de Mobile/Tablet pequeno
+  // Se a tela for menor que 768px (padrão mobile), a sidebar costuma cobrir tudo
+  // ou ficar oculta. Nesses casos, centralizamos normal (sem offset).
+  if (window.innerWidth <= 768) {
+    mapa.setView([lat, lon], zoomLevel, { animate: true, duration: 0.6 });
+    return;
+  }
+
+  // 2. Verificação se a Sidebar está aberta
+  // Se a sidebar estiver oculta (tem a classe 'hidden'), não precisamos compensar nada.
+  if (sidebar.classList.contains("hidden")) {
+     mapa.setView([lat, lon], zoomLevel, { animate: true, duration: 0.6 });
+     return;
+  }
+
+  // 3. Pega a largura REAL da sidebar neste exato momento
+  // Isso faz funcionar em qualquer tamanho de tablet ou monitor!
+  const sidebarWidth = sidebar.offsetWidth; 
+
+  // 4. Matemática do Leaflet para mover o centro
+  const point = mapa.project([lat, lon], zoomLevel);
+  
+  // Desloca metade da largura da sidebar para a esquerda
+  const newPoint = point.subtract([sidebarWidth / 2, 0]);
+  
+  const newLatLng = mapa.unproject(newPoint, zoomLevel);
+
+  mapa.setView(newLatLng, zoomLevel, { animate: true, duration: 0.6 });
+}
+
+function criarConteudoPopup(parada) {
+  // Dados
+  const numero = parada.name || "--";
+  const nomeLocal = parada.nome_formatado || "Local desconhecido";
+  
+  // Lógica do tempo: Se tiver horário, mostra. Se não, "-- Minutos".
+  const tempoTexto = parada.horario_prox 
+    ? `Próximo: ${parada.horario_prox}` 
+    : "Próximo: --";
+
+  const referencia = parada.referencia || "";
+
+  return `
+    <div class="popup-card">
+      <div class="popup-header">
+        Parada: ${numero}
+      </div>
+
+      <div class="popup-subheader">
+        ${nomeLocal}
+      </div>
+
+      <div class="popup-body">
+        <div class="popup-time">${tempoTexto}</div>
+        <div class="popup-ref">${referencia}</div>
+      </div>
+    </div>
+  `;
+}

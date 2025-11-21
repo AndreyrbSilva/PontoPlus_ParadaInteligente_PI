@@ -1,5 +1,11 @@
 @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@200;300;400;500;600;700;800&display=swap");
 
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;   /* impede qualquer scroll */
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -175,7 +181,7 @@ form.sign-in-form {
 }
 
 .image {
-  width: 100%;
+  width: 80%;
   transition: transform 1.1s ease-in-out;
   transition-delay: 0.4s;
 }
@@ -282,6 +288,11 @@ form.sign-in-form {
     transition: 1s 0.8s ease-in-out;
   }
 
+  .container:not(.sign-up-mode) .signin-signup {
+    top: 62%; /* antes 75% → isso sobe */
+    transform: translate(-50%, -80%); /* sobe mais */
+  }
+
   .signin-signup,
   .container.sign-up-mode .signin-signup {
     left: 50%;
@@ -302,10 +313,6 @@ form.sign-in-form {
 
   .right-panel {
     grid-row: 3 / 4;
-  }
-
-  .left-panel {
-    grid-row: 1 / 2;
   }
 
   .image {
@@ -396,5 +403,91 @@ form.sign-in-form {
   .container.sign-up-mode:before {
     bottom: 28%;
     left: 50%;
+  }
+}
+
+@media (max-width: 870px){
+  .panel h3 {
+     font-size: 1.8rem; 
+  }
+
+  .panel p { 
+    font-size: 1.05rem !important; max-width: 320px; 
+  } 
+
+  /* Aumentar botões transparentes */ 
+  .btn.transparent { 
+    width: 160px; height: 45px; font-size: 0.9rem; 
+  }
+
+  .signin-signup {
+  top: 75%;              /* sobe o formulário */
+  transform: translate(-50%, -90%);
+  }
+  
+  .signin-signup form.sign-up-form {
+  transform: translateY(170px);
+  }
+
+  .container.sign-up-mode form.sign-up-form {
+    transform: translateY(180px);
+  }
+
+  .input-field {
+  height: 65px;   
+  margin: 12px 0;     /* antes era 55px */
+  max-width: 450px;
+  width: 100%;
+  border-radius: 65px; /* para manter o formato oval */
+  }
+
+  .input-field input {
+  font-size: 1.2rem;   /* texto maior */
+  }
+
+  .btn {
+  width: 180px;
+  height: 55px;
+  font-size: 1rem;
+  }
+
+  .image {
+  width: 45%;
+  transition: transform 1.1s ease-in-out;
+  transition-delay: 0.4s;
+  }
+
+  .right-panel .image,
+  .right-panel .content {
+    transform: translateY(120vh);
+    transition-delay: 0.4s;
+  }
+
+  /* LEFT panel some para cima no sign-up */
+  .container.sign-up-mode .left-panel .image,
+  .container.sign-up-mode .left-panel .content {
+    transform: translateY(-120vh);
+  }
+
+  /* RIGHT panel volta no sign-up-mode */
+  .container.sign-up-mode .right-panel .image,
+  .container.sign-up-mode .right-panel .content {
+    transform: translateY(0);
+  }
+
+  .container:not(.sign-up-mode):before {
+    bottom: 75%; 
+  }
+
+  .panel .content {
+    transform: translateY(-40px);
+  }
+
+  .container.sign-up-mode .right-panel .content {
+    transform: translateY(-50px);
+  }
+
+  .container.sign-up-mode .right-panel .image {
+    transform: translateY(-70px);
   }
 }
