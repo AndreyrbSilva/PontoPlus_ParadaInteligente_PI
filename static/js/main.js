@@ -1,20 +1,91 @@
 // ====================
-// Relógio e dia da semana
+// 1. Relógio, Data e Clima
 // ====================
-const dias = [
-  "Domingo", "Segunda-Feira", "Terça-Feira",
-  "Quarta-Feira", "Quinta-Feira", "Sexta-Feira", "Sábado"
-];
+const diasAbrev = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
+const mesesAbrev = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
 
 function atualizarRelogio() {
   const now = new Date();
+
+  // Hora e Minuto
   document.getElementById("hours").textContent = now.getHours().toString().padStart(2, "0");
   document.getElementById("minutes").textContent = now.getMinutes().toString().padStart(2, "0");
-  document.getElementById("dayName").textContent = dias[now.getDay()];
+
+  // Dia da Semana (Abrev)
+  document.getElementById("dayName").textContent = diasAbrev[now.getDay()];
+
+  // Data no Topo
+  const dia = now.getDate();
+  const mes = mesesAbrev[now.getMonth()];
+  const ano = now.getFullYear();
+  document.getElementById("fullDate").textContent = `${mes} ${dia}, ${ano}`;
+}
+
+// Configuração da API de Clima
+const API_KEY = "f5efa92eaababebd075b954727f9702a"; // Sua chave
+
+function carregarClima() {
+  if (!navigator.geolocation) {
+    console.log("Geolocalização não suportada.");
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(async (position) => {
+    const lat = position.coords.latitude;
+    const lon = position.coords.longitude;
+
+    try {
+      // HTTPS seguro para deploy
+      const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric&lang=pt_br`;
+      
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Erro API Clima");
+      const data = await res.json();
+
+      // Temperatura
+      const temp = Math.round(data.main.temp);
+      document.getElementById("weatherTemp").textContent = `${temp}°C`;
+
+      // Ícone
+      const iconCode = data.weather[0].icon; 
+      const iconElement = document.getElementById("weatherIcon");
+      const isNight = iconCode.includes('n');
+
+      iconElement.className = ""; 
+
+      if (iconCode === "01d") {
+        iconElement.className = "fa-solid fa-sun";
+      } else if (iconCode === "01n") {
+        iconElement.className = "fa-solid fa-moon";
+      } else if (iconCode === "02d" || iconCode === "02n") {
+        iconElement.className = isNight ? "fa-solid fa-cloud-moon" : "fa-solid fa-cloud-sun";
+      } else if (iconCode.includes("03") || iconCode.includes("04")) {
+        iconElement.className = "fa-solid fa-cloud";
+      } else if (iconCode.includes("09") || iconCode.includes("10")) {
+        iconElement.className = "fa-solid fa-cloud-rain";
+      } else if (iconCode.includes("11")) {
+        iconElement.className = "fa-solid fa-bolt";
+      } else if (iconCode.includes("13")) {
+        iconElement.className = "fa-solid fa-snowflake";
+      } else if (iconCode.includes("50")) {
+        iconElement.className = "fa-solid fa-smog";
+      } else {
+        iconElement.className = "fa-solid fa-cloud";
+      }
+
+    } catch (error) {
+      console.error("Erro clima:", error);
+      document.getElementById("weatherTemp").textContent = "--°C";
+    }
+  }, (erro) => {
+    console.log("Localização negada:", erro);
+  });
 }
 
 atualizarRelogio();
-setInterval(atualizarRelogio, 1000);
+carregarClima();
+setInterval(atualizarRelogio, 1000);   
+setInterval(carregarClima, 1800000);    
 
 // ====================
 // Alternância de tema (modo claro/escuro)

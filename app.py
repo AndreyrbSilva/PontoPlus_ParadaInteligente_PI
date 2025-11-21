@@ -27,7 +27,7 @@ OSRM_TABLE_MAX = int(os.getenv("OSRM_TABLE_MAX", "95"))
 # -------------------------------
 MONGO_URI = os.getenv(
     "MONGO_URI",
-    "mongodb+srv://PontoPlus:txcYW0zUnClvs7TN@pontoplus.v7tiqaf.mongodb.net/?retryWrites=true&w=majority&appName=PontoPlus"
+    "mongodb+srv://PontoPlus:79o0cMRfqImmMJqx@pontoplus.v7tiqaf.mongodb.net/?retryWrites=true&w=majority&appName=PontoPlus"
 )
 client = MongoClient(MONGO_URI)
 db = client["PontoPlus"]
@@ -35,13 +35,36 @@ db = client["PontoPlus"]
 # -------------------------------
 # Páginas
 # -------------------------------
+from flask import render_template, request, redirect, url_for
+
 @app.route("/")
-def home():
+def login():
+    # Página inicial agora é o login
+    return render_template("login.html")
+
+@app.route("/login", methods=["POST"])
+def fazer_login():
+    usuario = request.form.get("usuario")
+    senha = request.form.get("senha")
+
+    # 🔒 Validação simples (pode conectar ao banco depois)
+    if usuario == "admin" and senha == "123":
+        return redirect(url_for("dashboard"))
+    else:
+        return render_template("login.html", erro="Usuário ou senha inválidos")
+
+@app.route("/dashboard")
+def dashboard():
+    return render_template("dashboard.html")
+
+@app.route("/painel")
+def painel():
     return render_template("index.html")
 
 @app.route("/onibus/<onibus_id>")
 def onibus_page(onibus_id):
     return render_template("onibus.html", onibus_id=onibus_id)
+
 
 # -------------------------------
 # Helpers
@@ -241,35 +264,66 @@ def get_linhas():
 @app.route("/api/paradas_linha/<linha_ref>")
 def get_paradas_linha(linha_ref):
     """
-    Retorna as paradas de uma linha.
-    Aceita tanto '116' quanto 'L116' como referência.
+    Retorna as paradas de uma linha, podendo filtrar por sentido (?sentido=ida|volta).
+    Exemplo:
+       /api/paradas_linha/116?sentido=ida
+       /api/paradas_linha/L116?sentido=volta
     """
-    # 1️⃣ Tenta buscar diretamente com e sem o prefixo "L"
-    paradas = list(db.paradas.find({"linha_id": f"L{linha_ref}"}, {"_id": 0}))
-    if not paradas:
-        paradas = list(db.paradas.find({"linha_id": linha_ref}, {"_id": 0}))
 
-    # 2️⃣ Caso ainda não encontre, tenta buscar a linha correspondente
-    if not paradas:
-        linha = db.linhas.find_one(
-            {"$or": [{"numero_linha": int(linha_ref)}, {"linha_id": f"L{linha_ref}"}]},
+    sentido = request.args.get("sentido", None)  # ida | volta | None
+
+    # Normalizar referencia da linha
+    linha = db.linhas.find_one(
+        {
+            "$or": [
+                {"linha_id": linha_ref},
+                {"linha_id": f"L{linha_ref}"},
+                {"numero_linha": linha_ref if isinstance(linha_ref, int) else None},
+                {"numero_linha": int(linha_ref) if linha_ref.isdigit() else None}
+            ]
+        },
+        {"_id": 0}
+    )
+
+    if not linha:
+        return jsonify({"erro": "Linha não encontrada"}), 404
+
+    linha_id = linha["linha_id"]
+
+    # ----------------------------
+    # 1. Se houver sentido declarado
+    # ----------------------------
+    if sentido in ("ida", "volta"):
+        if "paradas" not in linha or sentido not in linha["paradas"]:
+            return jsonify([])
+
+        # Lista ordenada de IDs
+        lista_ids = linha["paradas"][sentido]
+
+        # Buscar todas as paradas do sentido
+        docs = list(db.paradas.find(
+            {"linha_id": linha_id, "sentido": sentido},
             {"_id": 0}
-        )
-        if linha:
-            paradas = list(db.paradas.find({"linha_id": linha["linha_id"]}, {"_id": 0}))
+        ))
 
-    # 3️⃣ Corrige formato das coordenadas, se necessário
-    for parada in paradas:
-        loc = parada.get("localizacao", {})
-        # Garante formato {"coordinates": [lon, lat]}
-        if isinstance(loc, dict):
-            if "lat" in loc and "lng" in loc:
-                parada["localizacao"] = {"coordinates": [loc["lng"], loc["lat"]]}
-            elif "coordinates" not in loc and len(loc) == 2:
-                parada["localizacao"] = {"coordinates": loc}
+        # Indexar por parada_id
+        mapa_paradas = {p["parada_id"]: p for p in docs}
 
-    return jsonify(paradas)
+        # Ordenar na ordem oficial da linha
+        resultado = [mapa_paradas[id_] for id_ in lista_ids if id_ in mapa_paradas]
 
+        return jsonify(resultado)
+
+    # ----------------------------
+    # 2. Se NÃO houver parâmetro sentido
+    # devolve ida + volta concatenados
+    # ----------------------------
+    docs = list(db.paradas.find(
+        {"linha_id": linha_id},
+        {"_id": 0}
+    ))
+
+    return jsonify(docs)
 
 @app.route("/api/linha/<linha_id>")
 def get_linha_by_id(linha_id):
