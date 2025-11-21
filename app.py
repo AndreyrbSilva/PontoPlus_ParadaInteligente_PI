@@ -2,11 +2,17 @@ import time
 import math
 import requests
 from flask_compress import Compress
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, request, redirect, url_for, jsonify, session
 from flask_cors import CORS
 from pymongo import MongoClient
 from datetime import datetime, timedelta
 import os
+import pyotp
+import qrcode
+import base64
+import secrets
+import io
+from werkzeug.security import generate_password_hash, check_password_hash
 
 # -------------------------------
 # Configuração básica do Flask
@@ -15,6 +21,7 @@ app = Flask(__name__)
 CORS(app)
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = timedelta(days=30)
 Compress(app)
+app.secret_key = secrets.token_hex(32)
 
 # -------------------------------
 # Configurações (ambiente / padrão)
@@ -27,7 +34,7 @@ OSRM_TABLE_MAX = int(os.getenv("OSRM_TABLE_MAX", "95"))
 # -------------------------------
 MONGO_URI = os.getenv(
     "MONGO_URI",
-    "mongodb+srv://PontoPlus:txcYW0zUnClvs7TN@pontoplus.v7tiqaf.mongodb.net/?retryWrites=true&w=majority&appName=PontoPlus"
+    "mongodb+srv://PontoPlus:mZI8y87XDrO7moSt@pontoplus.v7tiqaf.mongodb.net/?retryWrites=true&w=majority&appName=PontoPlus"
 )
 client = MongoClient(MONGO_URI)
 db = client["PontoPlus"]
@@ -36,7 +43,122 @@ db = client["PontoPlus"]
 # Páginas
 # -------------------------------
 @app.route("/")
-def home():
+def login():
+    # Página inicial agora é o login
+    return render_template("login.html")
+
+@app.route("/register", methods=["POST"])
+def register():
+    usuario = request.form.get("usuario")
+    senha = request.form.get("senha")
+
+    if db.users.find_one({"usuario": usuario}):
+        return jsonify({"erro": "Usuário já existe"}), 400
+
+    hash_pw = generate_password_hash(senha)
+
+    db.users.insert_one({
+        "usuario": usuario,
+        "password": hash_pw,
+        "mfa_enabled": False,
+        "mfa_secret": None,
+        "recovery_codes": []
+    })
+
+    # AUTO LOGIN + IR PARA O ENROLL
+    session["usuario"] = usuario
+    session["mfa_pending"] = True
+
+    return redirect(url_for("mfa_enroll"))
+
+@app.route("/login", methods=["POST"])
+def fazer_login():
+    usuario = request.form.get("usuario")
+    senha = request.form.get("senha")
+
+    user = db.users.find_one({"usuario": usuario})
+
+    if not user or not check_password_hash(user["password"], senha):
+        return render_template("login.html", erro="Usuário ou senha inválidos")
+
+    # Login básico (sem Flask-Login)
+    session["usuario"] = usuario
+
+    # Se MFA estiver habilitada, exigir verificação
+    if user.get("mfa_enabled"):
+        session["mfa_pending"] = True
+        return redirect(url_for("mfa_verify"))
+
+    return redirect(url_for("dashboard"))
+
+@app.route("/mfa/enroll")
+def mfa_enroll():
+    if "usuario" not in session:
+        return redirect(url_for("login"))
+
+    user = db.users.find_one({"usuario": session["usuario"]})
+
+    secret = pyotp.random_base32()
+    session["temp_secret"] = secret
+
+    totp = pyotp.TOTP(secret)
+    uri = totp.provisioning_uri(name=user["usuario"], issuer_name="PontoPlus")
+
+    img = qrcode.make(uri)
+    buf = io.BytesIO()
+    img.save(buf, format='PNG')
+
+    qr_base64 = base64.b64encode(buf.getvalue()).decode()
+
+    return render_template("mfa_enroll.html", qr=qr_base64, secret=secret)
+
+@app.route("/mfa/enroll/confirm", methods=["POST"])
+def mfa_enroll_confirm():
+    token = request.form.get("token")
+
+    secret = session.get("temp_secret")
+    if not secret:
+        return redirect(url_for("mfa_enroll"))
+
+    totp = pyotp.TOTP(secret)
+
+    if not totp.verify(token):
+        return "Código inválido", 400
+
+    db.users.update_one(
+        {"usuario": session["usuario"]},
+        {"$set": {
+            "mfa_enabled": True,
+            "mfa_secret": secret
+        }}
+    )
+
+    session.pop("temp_secret", None)
+
+    return redirect(url_for("dashboard"))
+
+@app.route("/mfa", methods=["GET", "POST"])
+def mfa_verify():
+    if "mfa_pending" not in session:
+        return redirect(url_for("dashboard"))
+
+    user = db.users.find_one({"usuario": session["usuario"]})
+
+    if request.method == "POST":
+        token = request.form.get("token")
+        totp = pyotp.TOTP(user["mfa_secret"])
+
+        if totp.verify(token):
+            session.pop("mfa_pending")
+            return redirect(url_for("dashboard"))
+
+        return render_template("mfa_verify.html", erro="Código incorreto")
+
+    return render_template("mfa_verify.html")
+
+
+@app.route("/painel")
+def painel():
     return render_template("index.html")
 
 @app.route("/onibus/<onibus_id>")
@@ -244,12 +366,12 @@ def get_paradas_linha(linha_ref):
     Retorna as paradas de uma linha.
     Aceita tanto '116' quanto 'L116' como referência.
     """
-    # 1️⃣ Tenta buscar diretamente com e sem o prefixo "L"
+    # Tenta buscar diretamente com e sem o prefixo "L"
     paradas = list(db.paradas.find({"linha_id": f"L{linha_ref}"}, {"_id": 0}))
     if not paradas:
         paradas = list(db.paradas.find({"linha_id": linha_ref}, {"_id": 0}))
 
-    # 2️⃣ Caso ainda não encontre, tenta buscar a linha correspondente
+    # Caso ainda não encontre, tenta buscar a linha correspondente
     if not paradas:
         linha = db.linhas.find_one(
             {"$or": [{"numero_linha": int(linha_ref)}, {"linha_id": f"L{linha_ref}"}]},
@@ -258,7 +380,7 @@ def get_paradas_linha(linha_ref):
         if linha:
             paradas = list(db.paradas.find({"linha_id": linha["linha_id"]}, {"_id": 0}))
 
-    # 3️⃣ Corrige formato das coordenadas, se necessário
+    # Corrige formato das coordenadas, se necessário
     for parada in paradas:
         loc = parada.get("localizacao", {})
         # Garante formato {"coordinates": [lon, lat]}
@@ -294,6 +416,16 @@ def get_onibus_by_id(onibus_id):
         return jsonify({"erro": "Ônibus não encontrado"}), 404
     linha = db.linhas.find_one({"linha_id": onibus["linha_id"]}, {"_id": 0})
     return jsonify({"onibus": onibus, "linha": linha})
+
+@app.route("/dashboard")
+def dashboard():
+    if "usuario" not in session:
+        return redirect(url_for("login"))
+
+    if session.get("mfa_pending"):
+        return redirect(url_for("mfa_verify"))
+
+    return render_template("dashboard.html")
 
 # -------------------------------
 # Cache e headers
