@@ -35,7 +35,7 @@ OSRM_TABLE_MAX = int(os.getenv("OSRM_TABLE_MAX", "95"))
 # -------------------------------
 MONGO_URI = os.getenv(
     "MONGO_URI",
-    "uri"
+    "a"
 )
 client = MongoClient(MONGO_URI)
 db = client["PontoPlus"]
@@ -120,17 +120,20 @@ def register():
 
 @app.route("/login", methods=["POST"])
 def fazer_login():
-    usuario = request.form.get("usuario")
+    email = request.form.get("email")
     senha = request.form.get("senha")
-    user = db.users.find_one({"usuario": usuario})
+
+    # Agora procura o usuário pelo EMAIL
+    user = db.users.find_one({"email": email})
 
     if not user or not check_password_hash(user["password"], senha):
-        return render_template("login.html", erro="Usuário ou senha inválidos")
+        return render_template("login.html", erro="Email ou senha inválidos")
 
-    # Login básico (sem Flask-Login)
-    session["usuario"] = usuario
+    # Mantém login normal, mas salvando o NOME DE USUÁRIO na sessão
+    session["usuario"] = user["usuario"]
+    session["email"] = email
 
-    # Se MFA estiver habilitada, exigir verificação
+    # Se tiver MFA
     if user.get("mfa_enabled"):
         session["mfa_pending"] = True
         return redirect(url_for("mfa_verify"))
@@ -139,8 +142,8 @@ def fazer_login():
 
 @app.route("/mfa/enroll")
 def mfa_enroll():
-    #if "usuario" not in session:
-    #    return redirect(url_for("login"))
+    if "usuario" not in session:
+        return redirect(url_for("login"))
 
     user = db.users.find_one({"usuario": session["usuario"]})
 

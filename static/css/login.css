@@ -20,8 +20,6 @@ input {
   font-family: "Poppins", sans-serif;
 }
 
-
-
 .main-header {
     position: fixed;
     top: 0;
@@ -88,10 +86,8 @@ input {
     transition: color 0.3s 0.8s ease-in-out; 
 }
 
-/* 2. Muda a cor do ÍCONE DO ÔNIBUS para Azul */
-/* Usamos um filtro para pintar a imagem branca de azul */
 .main-header.sign-up-mode .logo-img {
-    filter: invert(42%) sepia(93%) saturate(1352%) hue-rotate(199deg) brightness(91%) contrast(89%);
+    filter: brightness(0) saturate(100%) invert(39%) sepia(83%) saturate(1132%) hue-rotate(199deg) brightness(99%) contrast(86%);
     transition: filter 0.3s 0.8s ease-in-out;
 }
 
@@ -477,6 +473,116 @@ form.sign-in-form {
   pointer-events: all;
 }
 
+/* MODO ESCURO */
+
+body.dark-mode .title{
+  color: #f0f0f0;
+}
+
+body.dark-mode .container {
+  background-color: #1F1F1F; /* tom escuro neutro */
+}
+
+body.dark-mode .theme-toggle{
+  color: #fff;
+}
+
+body.dark-mode .input-field{
+  background-color: #333;
+}
+
+body.dark-mode .container:before {
+  background-color: #00619e;
+    transition: 
+    transform 1.8s ease-in-out,     /* movimento lento */
+    right 1.8s ease-in-out,         /* movimento lento */
+    background-color 0.4s ease, color 0.4s ease;
+}
+
+body.dark-mode .input-field input::placeholder {
+  color: #888888;
+}
+
+body.dark-mode .input-field input {
+  color: #dddddd;
+}
+
+body.dark-mode .btn:not(.transparent) {
+  background-color: #00619e;
+  color: #dddddd; /* se quiser */
+}
+
+body.dark-mode .sign-in-form .social-text {
+  color: #888888 !important;
+}
+
+body.dark-mode .rules-list{
+  color:#888888;
+}
+
+body.dark-mode .rules-list li::before{
+  color: #888888;
+}
+
+body.dark-mode #strength-bar{
+  background: #888888;
+}
+
+/* MODO ESCURO */
+
+body.dark-mode .title{
+  color: #f0f0f0;
+}
+
+body.dark-mode .container {
+  background-color: #1F1F1F; /* tom escuro neutro */
+}
+
+body.dark-mode .theme-toggle{
+  color: #fff;
+}
+
+body.dark-mode .input-field{
+  background-color: #333;
+}
+
+body.dark-mode .container:before {
+  background-color: #00619e;
+    transition: 
+    transform 1.8s ease-in-out,     /* movimento lento */
+    right 1.8s ease-in-out,         /* movimento lento */
+    background-color 0.4s ease, color 0.4s ease;
+}
+
+body.dark-mode .input-field input::placeholder {
+  color: #888888;
+}
+
+body.dark-mode .input-field input {
+  color: #dddddd;
+}
+
+body.dark-mode .btn:not(.transparent) {
+  background-color: #00619e;
+  color: #dddddd; /* se quiser */
+}
+
+body.dark-mode .sign-in-form .social-text {
+  color: #888888 !important;
+}
+
+body.dark-mode .rules-list{
+  color:#888888;
+}
+
+body.dark-mode .rules-list li::before{
+  color: #888888;
+}
+
+body.dark-mode #strength-bar{
+  background: #888888;
+}
+
 @media (max-width: 870px) {
   .container {
     min-height: 800px;
@@ -551,7 +657,7 @@ form.sign-in-form {
     bottom: 68%;
     right: initial;
     top: initial;
-    transition: 2s ease-in-out;
+    transition: 2s ease-in-out, background-color 0.4s ease, color 0.4s ease;
   }
 
   .container.sign-up-mode:before {
@@ -697,7 +803,7 @@ form.sign-in-form {
 
   #senha-field {
   border: 2px solid transparent;
-  transition: border-color .3s ease;
+  transition: border-color 0.3s ease, background-color 0.4s ease;
   }
 
   form {
@@ -717,6 +823,10 @@ form.sign-in-form {
   .left-panel .content {
     position: relative; 
     top: 40px;
+  }
+  
+  body.dark-mode .container:before {
+    transition: 2s ease-in-out, background-color 0.4s ease, color 0.4s ease;
   }
 }
 
@@ -755,55 +865,4 @@ form.sign-in-form {
 
 .icon.spin-reverse {
     animation: rotateIn 0.4s forwards;
-}
-
-/* MODO ESCURO */
-
-body.dark-mode .title{
-  color: #f0f0f0;
-}
-
-body.dark-mode .container {
-  background-color: #1F1F1F; /* tom escuro neutro */
-}
-
-body.dark-mode .theme-toggle{
-  color: #fff;
-}
-
-body.dark-mode .input-field{
-  background-color: #333;
-}
-
-body.dark-mode .container:before {
-  background-color: #00619e;
-}
-
-body.dark-mode .input-field input::placeholder {
-  color: #888888;
-}
-
-body.dark-mode .input-field input {
-  color: #dddddd;
-}
-
-body.dark-mode .btn:not(.transparent) {
-  background-color: #00619e;
-  color: #dddddd; /* se quiser */
-}
-
-body.dark-mode .sign-in-form .social-text {
-  color: #888888 !important;
-}
-
-body.dark-mode .rules-list{
-  color:#888888;
-}
-
-body.dark-mode .rules-list li::before{
-  color: #888888;
-}
-
-body.dark-mode #strength-bar{
-  background: #888888;
 }
