@@ -27,8 +27,8 @@ select:focus-visible {
 }
 
 :root {
-  --brand-color: #005285;
-  --brand-dark: #00619e;
+  --brand-color: #4481eb;
+  --brand-dark: #4481eb;
   --text-color: #222;
   --bg-light: #e0e0e0;
   --bg-card: #fff;
@@ -163,7 +163,7 @@ body.dark-mode .header {
 .clock #hours,
 .clock #minutes {
   background: var(--brand-color);
-  color: white;
+  color: rgb(255, 255, 255);
   font-weight: bold;
   font-size: 1.1rem;
   padding: 0.3rem 0.8rem;
@@ -245,7 +245,7 @@ body.dark-mode .logo-text {
 
 /* 2. ÍCONE (Ônibus e Sinal) */
 .logo-icon {
-  fill: #005285; /* NOVO: Azul Escuro no modo claro */
+  fill: #4481eb; /* NOVO: Azul Escuro no modo claro */
   transition: fill 0.3s ease;
 }
 /* Modo Escuro: Ícone volta pro Azul Claro (Neon) */

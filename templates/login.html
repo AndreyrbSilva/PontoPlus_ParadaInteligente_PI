@@ -13,8 +13,18 @@
     <title>PontoPlus - Login</title>
   </head>
 
+  <header class="main-header {% if force_register %}sign-up-mode{% endif %}">
+      <nav class="navbar">
+        <a href="/" class="logo">
+          <img src="{{ url_for('static', filename='images/logoicon.svg') }}" alt="Logo PontoPlus" class="logo-img">
+          PontoPlus
+        </a>
+      </nav>
+    </header>
+
   <body>
-    <div class="container">
+    <div class="container {% if force_register %}sign-up-mode{% endif %}" id="container">
+
       <div class="forms-container">
         <div class="signin-signup">
 
@@ -23,7 +33,7 @@
             <h2 class="title">Entrar</h2>
 
             {% if erro %}
-            <p style="color:red; margin-bottom:10px;">{{ erro }}</p>
+            <p class="erro-msg">{{ erro }}</p>
             {% endif %}
 
             <div class="input-field">
@@ -47,6 +57,10 @@
           <form action="/register" method="POST" class="sign-up-form">
             <h2 class="title">Registre-se</h2>
 
+            {% if erro_register %}
+            <p class="erro-msg">{{ erro_register }}</p>
+            {% endif %}
+
             <div class="input-field">
               <i class="fa-solid fa-user"></i>
               <input type="text" name="usuario" placeholder="Usuário" required />
@@ -57,10 +71,25 @@
               <input type="email" name="email" placeholder="Email" required />
             </div>
 
-            <div class="input-field">
+            <div class="input-field" id="senha-field">
               <i class="fa-solid fa-lock"></i>
-              <input type="password" name="senha" placeholder="Senha" required />
+              <input type="password" name="senha" id="senha-register" placeholder="Senha" required />
             </div>
+
+            <div id="strength-bar">
+              <div id="strength-fill"></div>
+            </div>
+            
+            <p id="password-strength" class="strength-msg"></p>
+
+            <ul class="rules-list">
+              <li id="rule-length">Pelo menos 8 caracteres</li>
+              <li id="rule-upper">Letra maiúscula</li>
+              <li id="rule-lower">Letra minúscula</li>
+              <li id="rule-number">Pelo menos 1 número</li>
+              <li id="rule-special">Pelo menos 1 caractere especial</li>
+            </ul>
+
 
             <input type="submit" class="btn" value="Cadastrar" />
           </form>

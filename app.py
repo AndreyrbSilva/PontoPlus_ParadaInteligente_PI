@@ -12,6 +12,7 @@ import qrcode
 import base64
 import secrets
 import io
+import re
 from werkzeug.security import generate_password_hash, check_password_hash
 
 # -------------------------------
@@ -34,10 +35,32 @@ OSRM_TABLE_MAX = int(os.getenv("OSRM_TABLE_MAX", "95"))
 # -------------------------------
 MONGO_URI = os.getenv(
     "MONGO_URI",
-    "mongodb+srv://PontoPlus:AhT9ANv3cDCI5yME@pontoplus.v7tiqaf.mongodb.net/?retryWrites=true&w=majority&appName=PontoPlus"
+    "uri"
 )
 client = MongoClient(MONGO_URI)
 db = client["PontoPlus"]
+
+# -------------------------------
+# Função de checar senha
+# -------------------------------
+
+def senha_valida(senha):
+    if len(senha) < 8:
+        return False
+
+    if not re.search(r"[A-Z]", senha):
+        return False
+
+    if not re.search(r"[a-z]", senha):
+        return False
+
+    if not re.search(r"[0-9]", senha):
+        return False
+
+    if not re.search(r"[!@#$%^&*(),.?\":{}|<>_\-+=/\\\[\]]", senha):
+        return False
+
+    return True
 
 # -------------------------------
 # Páginas
@@ -54,9 +77,32 @@ def register():
     usuario = request.form.get("usuario")
     senha = request.form.get("senha")
 
-    if db.users.find_one({"usuario": usuario}):
-        return jsonify({"erro": "Usuário já existe"}), 400
+    # Regras
+    import re
+    regras = {
+        "tamanho": len(senha) >= 8,
+        "maiuscula": re.search(r"[A-Z]", senha),
+        "minuscula": re.search(r"[a-z]", senha),
+        "numero": re.search(r"\d", senha),
+        "simbolo": re.search(r"[!@#$%¨&*();]", senha),
+    }
 
+    if not all(regras.values()):
+        return render_template(
+            "login.html",
+            erro_register="A senha deve ter pelo menos 8 caracteres, incluir letras maiúsculas, minúsculas, números e símbolos.",
+            force_register=True
+        )
+
+    # Usuário já existe
+    if db.users.find_one({"usuario": usuario}):
+        return render_template(
+            "login.html",
+            erro_register="Usuário já existe",
+            force_register=True
+        )
+
+    # Criar usuário
     hash_pw = generate_password_hash(senha)
 
     db.users.insert_one({
@@ -67,7 +113,6 @@ def register():
         "recovery_codes": []
     })
 
-    # AUTO LOGIN + IR PARA O ENROLL
     session["usuario"] = usuario
     session["mfa_pending"] = True
 
@@ -124,7 +169,7 @@ def mfa_enroll_confirm():
     totp = pyotp.TOTP(secret)
 
     if not totp.verify(token):
-        return "Código inválido", 400
+        return render_template("mfa_enroll.html", erro="Código inválido")
 
     db.users.update_one(
         {"usuario": session["usuario"]},
@@ -134,7 +179,8 @@ def mfa_enroll_confirm():
         }}
     )
 
-    session.pop("temp_secret", None)
+    session.pop("temp_secret")
+    session.pop("mfa_pending", None)
 
     return redirect(url_for("dashboard"))
 
