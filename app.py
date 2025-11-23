@@ -139,8 +139,8 @@ def fazer_login():
 
 @app.route("/mfa/enroll")
 def mfa_enroll():
-    if "usuario" not in session:
-        return redirect(url_for("login"))
+    #if "usuario" not in session:
+    #    return redirect(url_for("login"))
 
     user = db.users.find_one({"usuario": session["usuario"]})
 

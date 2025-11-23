@@ -798,41 +798,39 @@ main {
   flex: 1;
 }
 
-/* ===== 🌙☀️ EFEITO GIRATÓRIO SUAVE (sem blur) ===== */
+/* ========================
+   ANIMAÇÃO DO BOTÃO DE TEMA
+   ======================== */
+
+/* Animação de Saída (Gira e some) */
+@keyframes rotateOut {
+    0% {
+        transform: rotate(0deg) scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: rotate(180deg) scale(0.5);
+        opacity: 0;
+    }
+}
+
+/* Animação de Entrada (Gira ao contrário e aparece) */
+@keyframes rotateIn {
+    0% {
+        transform: rotate(-180deg) scale(0.5);
+        opacity: 0;
+    }
+    100% {
+        transform: rotate(0deg) scale(1);
+        opacity: 1;
+    }
+}
+
+/* Classes controladas pelo JS */
 .icon.spin {
-  animation: spin 0.4s ease-in-out forwards;
+    animation: rotateOut 0.4s forwards;
 }
 
 .icon.spin-reverse {
-  animation: spinReverse 0.4s ease-in-out forwards;
-}
-
-@keyframes spin {
-  0% {
-    transform: rotate(0deg) scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: rotate(180deg) scale(1.2);
-    opacity: 0.7;
-  }
-  100% {
-    transform: rotate(360deg) scale(1);
-    opacity: 1;
-  }
-}
-
-@keyframes spinReverse {
-  0% {
-    transform: rotate(0deg) scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: rotate(-180deg) scale(1.2);
-    opacity: 0.7;
-  }
-  100% {
-    transform: rotate(-360deg) scale(1);
-    opacity: 1;
-  }
+    animation: rotateIn 0.4s forwards;
 }

@@ -3,12 +3,14 @@
 html, body {
   width: 100%;
   height: 100%;
+  background-color: #fff;
   overflow: hidden;   /* impede qualquer scroll */
 }
 
 * {
   margin: 0;
   padding: 0;
+  transition: background-color 0.4s ease, color 0.4s ease;
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
 }
@@ -16,6 +18,117 @@ html, body {
 body,
 input {
   font-family: "Poppins", sans-serif;
+}
+
+
+
+.main-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background-color: rgba(0, 0, 0, 0);
+    padding: 15px 40px;
+    z-index: 9999; 
+    transition: background-color 0.3s ease;
+}
+
+/* Tente assim primeiro */
+.logo {
+    display: flex;
+    align-items: flex-end; 
+    gap: 5px;
+    color: #fff;
+    font-size: 1.5rem;
+    font-weight: bold;
+    text-decoration: none;
+    line-height: 1.1; /* Ajuste leve na altura da linha pode ajudar também */
+}
+
+.logo-img {
+    height: 45px; 
+    width: auto;
+    margin-bottom: 0px; /* Remova a margem para testar se eles se alinham naturalmente */
+}
+
+.navbar {
+    display: flex;
+    justify-content: space-between; /* Espaço entre o logo e os links (se houver) */
+    align-items: center;
+}
+
+.nav-links {
+    list-style: none;
+    display: flex;
+}
+
+.nav-links li {
+    margin-left: 20px;
+}
+
+.nav-links a {
+    color: #fff;
+    text-decoration: none;
+    font-size: 1rem;
+    transition: color 0.3s;
+}
+
+.nav-links a:hover {
+    color: #ccc;
+}
+
+/* =========================================
+   MUDANÇA DE COR DO LOGO (REGISTRO)
+   ========================================= */
+
+/* 1. Muda a cor do TEXTO PontoPlus para Azul (#4481eb) */
+.main-header.sign-up-mode .logo {
+    color: #4481eb;
+    /* O delay de 0.8s espera a animação do fundo branco chegar antes de mudar a cor */
+    transition: color 0.3s 0.8s ease-in-out; 
+}
+
+/* 2. Muda a cor do ÍCONE DO ÔNIBUS para Azul */
+/* Usamos um filtro para pintar a imagem branca de azul */
+.main-header.sign-up-mode .logo-img {
+    filter: invert(42%) sepia(93%) saturate(1352%) hue-rotate(199deg) brightness(91%) contrast(89%);
+    transition: filter 0.3s 0.8s ease-in-out;
+}
+
+/* Garante que volta ao normal (Branco) quando clica em Entrar */
+.main-header .logo, 
+.main-header .logo-img {
+    transition: all 0.3s 0.8s ease-in-out;
+}
+
+/* 2. Estilo do Botão (Sem troca de cor dinâmica) */
+.theme-toggle {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    
+    /* Defina aqui a cor fixa que você quer. 
+       Se o fundo for branco, use #333 (preto). 
+       Se o fundo for azul, use #fff (branco). */
+    color: #444; 
+    
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px; /* Um pouco de espaço para o clique */
+    border-radius: 50%;
+    transition: background-color 0.3s ease;
+}
+
+.theme-toggle svg {
+    width: 35px;
+    height: 35px;
+    fill: currentColor; /* Pega a cor definida no .theme-toggle */
+}
+
+/* Efeito ao passar o mouse (opcional) */
+.theme-toggle:hover {
+    background-color: rgba(255, 255, 255, 0.2);
 }
 
 .container {
@@ -110,36 +223,6 @@ form.sign-in-form {
   font-weight: 500;
 }
 
-.social-text {
-  padding: 0.7rem 0;
-  font-size: 1rem;
-}
-
-.social-media {
-  display: flex;
-  justify-content: center;
-}
-
-.social-icon {
-  height: 46px;
-  width: 46px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin: 0 0.45rem;
-  color: #333;
-  border-radius: 50%;
-  border: 1px solid #333;
-  text-decoration: none;
-  font-size: 1.1rem;
-  transition: 0.3s;
-}
-
-.social-icon:hover {
-  color: #4481eb;
-  border-color: #4481eb;
-}
-
 .btn {
   width: 150px;
   background-color: #5995fd;
@@ -157,6 +240,13 @@ form.sign-in-form {
 
 .btn:hover {
   background-color: #4d84e2;
+}
+
+.social-text {
+  padding: 0.7rem 0;
+  font-size: 1rem;
+  color: #3f3f3f;
+  text-decoration: underline;
 }
 
 .panels-container {
@@ -177,8 +267,11 @@ form.sign-in-form {
   top: -10%;
   right: 48%;
   transform: translateY(-50%);
-  background-image: linear-gradient(-45deg, #4481eb 0%, #04befe 100%);
-  transition: 1.8s ease-in-out;
+  background-color: #4481eb;
+  transition: 
+    transform 1.8s ease-in-out,     /* movimento lento */
+    right 1.8s ease-in-out,         /* movimento lento */
+    background-color 0.4s ease, color 0.4s ease;
   border-radius: 50%;
   z-index: 6;
 }
@@ -284,7 +377,7 @@ form.sign-in-form {
 /* Estado padrão da borda animada */
 #senha-field {
   border: 1px solid transparent;
-  transition: border-color .3s ease;
+  transition: border-color 0.3s ease, background-color 0.4s ease;
 }
 
 /* cores que sincronizam com a força da senha */
@@ -305,7 +398,7 @@ form.sign-in-form {
   padding: 0;
   margin: 6px 0 0 0;     /* tiramos o deslocamento lateral */
   font-size: 0.78rem;
-  color: #666666;
+  color: #525252;
   line-height: 1.35rem;
   width: 100%;
   max-width: 380px;
@@ -334,23 +427,11 @@ form.sign-in-form {
   opacity: 1 !important;
 }
 
-.rules-ok::before {
+.rules-list li.rules-ok::before {
   content: "✔";
   color: #2ecc71 !important;
   font-size: 0.9rem;
 }
-
-/* Se quiser usar estado intermediário */
-.rules-warn {
-  color: #f1c40f !important;
-  opacity: 1 !important;
-}
-
-.rules-warn::before {
-  content: "•";
-  color: #f1c40f !important;
-}
-
 
 .right-panel .image,
 .right-panel .content {
@@ -639,82 +720,90 @@ form.sign-in-form {
   }
 }
 
+/* ========================
+   ANIMAÇÃO DO BOTÃO DE TEMA
+   ======================== */
 
-.main-header {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    background-color: rgba(0, 0, 0, 0);
-    padding: 15px 40px;
-    z-index: 9999; 
-    transition: background-color 0.3s ease;
+/* Animação de Saída (Gira e some) */
+@keyframes rotateOut {
+    0% {
+        transform: rotate(0deg) scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: rotate(180deg) scale(0.5);
+        opacity: 0;
+    }
 }
 
-/* Tente assim primeiro */
-.logo {
-    display: flex;
-    align-items: flex-end; 
-    gap: 5px;
-    color: #fff;
-    font-size: 1.5rem;
-    font-weight: bold;
-    text-decoration: none;
-    line-height: 1.1; /* Ajuste leve na altura da linha pode ajudar também */
+/* Animação de Entrada (Gira ao contrário e aparece) */
+@keyframes rotateIn {
+    0% {
+        transform: rotate(-180deg) scale(0.5);
+        opacity: 0;
+    }
+    100% {
+        transform: rotate(0deg) scale(1);
+        opacity: 1;
+    }
 }
 
-.logo-img {
-    height: 45px; 
-    width: auto;
-    margin-bottom: 0px; /* Remova a margem para testar se eles se alinham naturalmente */
+/* Classes controladas pelo JS */
+.icon.spin {
+    animation: rotateOut 0.4s forwards;
 }
 
-.navbar {
-    display: flex;
-    justify-content: space-between; /* Espaço entre o logo e os links (se houver) */
-    align-items: center;
+.icon.spin-reverse {
+    animation: rotateIn 0.4s forwards;
 }
 
-.nav-links {
-    list-style: none;
-    display: flex;
+/* MODO ESCURO */
+
+body.dark-mode .title{
+  color: #f0f0f0;
 }
 
-.nav-links li {
-    margin-left: 20px;
+body.dark-mode .container {
+  background-color: #1F1F1F; /* tom escuro neutro */
 }
 
-.nav-links a {
-    color: #fff;
-    text-decoration: none;
-    font-size: 1rem;
-    transition: color 0.3s;
+body.dark-mode .theme-toggle{
+  color: #fff;
 }
 
-.nav-links a:hover {
-    color: #ccc;
+body.dark-mode .input-field{
+  background-color: #333;
 }
 
-/* =========================================
-   MUDANÇA DE COR DO LOGO (REGISTRO)
-   ========================================= */
-
-/* 1. Muda a cor do TEXTO PontoPlus para Azul (#4481eb) */
-.main-header.sign-up-mode .logo {
-    color: #4481eb;
-    /* O delay de 0.8s espera a animação do fundo branco chegar antes de mudar a cor */
-    transition: color 0.3s 0.8s ease-in-out; 
+body.dark-mode .container:before {
+  background-color: #00619e;
 }
 
-/* 2. Muda a cor do ÍCONE DO ÔNIBUS para Azul */
-/* Usamos um filtro para pintar a imagem branca de azul */
-.main-header.sign-up-mode .logo-img {
-    filter: invert(42%) sepia(93%) saturate(1352%) hue-rotate(199deg) brightness(91%) contrast(89%);
-    transition: filter 0.3s 0.8s ease-in-out;
+body.dark-mode .input-field input::placeholder {
+  color: #888888;
 }
 
-/* Garante que volta ao normal (Branco) quando clica em Entrar */
-.main-header .logo, 
-.main-header .logo-img {
-    transition: all 0.3s 0.8s ease-in-out;
+body.dark-mode .input-field input {
+  color: #dddddd;
+}
+
+body.dark-mode .btn:not(.transparent) {
+  background-color: #00619e;
+  color: #dddddd; /* se quiser */
+}
+
+body.dark-mode .sign-in-form .social-text {
+  color: #888888 !important;
+}
+
+body.dark-mode .rules-list{
+  color:#888888;
+}
+
+body.dark-mode .rules-list li::before{
+  color: #888888;
+}
+
+body.dark-mode #strength-bar{
+  background: #888888;
 }
