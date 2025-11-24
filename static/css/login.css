@@ -99,7 +99,7 @@ input {
 
 /* 2. Estilo do Botão (Sem troca de cor dinâmica) */
 .theme-toggle {
-    background: transparent;
+    background-color: rgba(53, 53, 53, 0.2);
     border: none;
     cursor: pointer;
     
@@ -124,7 +124,7 @@ input {
 
 /* Efeito ao passar o mouse (opcional) */
 .theme-toggle:hover {
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: rgba(136, 136, 136, 0.2);
 }
 
 .container {
@@ -256,6 +256,7 @@ form.sign-in-form {
 }
 
 .container:before {
+  will-change: transform;
   content: "";
   position: absolute;
   height: 2000px;
@@ -437,6 +438,7 @@ form.sign-in-form {
 /* ANIMATION */
 
 .container.sign-up-mode:before {
+  will-change: transform;
   transform: translate(100%, -50%);
   right: 52%;
 }
@@ -484,7 +486,12 @@ body.dark-mode .container {
 }
 
 body.dark-mode .theme-toggle{
+  background-color: rgba(255, 255, 255, 0.2);
   color: #fff;
+}
+
+body.dark-mode .theme-toggle:hover{
+  background-color: rgba(53, 53, 53, 0.2);
 }
 
 body.dark-mode .input-field{
@@ -650,6 +657,7 @@ body.dark-mode #strength-bar{
   }
 
   .container:before {
+    will-change: transform;
     width: 1500px;
     height: 1500px;
     transform: translateX(-50%);
@@ -751,6 +759,17 @@ body.dark-mode #strength-bar{
 
   .input-field input {
   font-size: 1.2rem;   /* texto maior */
+  }
+
+  .input-field i {
+    line-height: 65px;   /* igual ao height do input-field */
+    font-size: 1.3rem;   /* opcional – para casar com o tamanho maior */
+  }
+
+  /* Ajustar o botão de mostrar senha também */
+  .password-field .toggle-password {
+    top: 50%;
+    transform: translateY(-50%);
   }
 
   .btn {
@@ -865,4 +884,45 @@ body.dark-mode #strength-bar{
 
 .icon.spin-reverse {
     animation: rotateIn 0.4s forwards;
+}
+
+/* Ícone de olho dentro do input de senha */
+.password-field {
+  position: relative;
+}
+
+.password-field .toggle-password {
+  position: absolute;
+  right: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.25rem;
+  width: 22px;      /* ← força largura igual pros dois ícones */
+  height: 22px;     /* ← opcional, deixa quadrado */
+  display: flex;    /* ← alinha o SVG centralizado */
+  align-items: center;
+  justify-content: center;
+  color: #777;
+  cursor: pointer;
+  transition: 0.2s ease;
+  z-index: 10;
+  opacity: 1;
+  transition: opacity 0.18s ease, color 0.2s ease;
+}
+
+.password-field .toggle-password.fading {
+  opacity: 0; /* fica transparente rapidinho */
+}
+
+.password-field .toggle-password:hover {
+  color: #444;
+}
+
+/* Modo escuro */
+body.dark-mode .password-field .toggle-password {
+  color: #bbb;
+}
+
+body.dark-mode .password-field .toggle-password:hover {
+  color: #fff;
 }

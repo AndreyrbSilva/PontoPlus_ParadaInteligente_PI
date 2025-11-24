@@ -48,9 +48,10 @@
               <input type="email" name="email" placeholder="Email" required />
             </div>
 
-            <div class="input-field">
+            <div class="input-field password-field">
               <i class="fa-solid fa-lock"></i>
-              <input type="password" name="senha" placeholder="Senha" required />
+              <input type="password" name="senha" id="senha-login" placeholder="Senha" required>
+              <i class="fa-solid fa-eye toggle-password" data-target="senha-login"></i>
             </div>
 
             <input type="submit" value="Entrar" class="btn solid" />
@@ -78,9 +79,10 @@
               <input type="email" name="email" placeholder="Email" required />
             </div>
 
-            <div class="input-field" id="senha-field">
+            <div class="input-field password-field">
               <i class="fa-solid fa-lock"></i>
-              <input type="password" name="senha" id="senha-register" placeholder="Senha" required />
+              <input type="password" name="senha" id="senha-register" placeholder="Senha" required>
+              <i class="fa-solid fa-eye toggle-password" data-target="senha-register"></i>
             </div>
 
             <div id="strength-bar">

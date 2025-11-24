@@ -104,7 +104,7 @@ senhaInput.addEventListener("input", () => {
   const temMaiuscula  = /[A-Z]/.test(senha);
   const temMinuscula  = /[a-z]/.test(senha);
   const temNumero     = /\d/.test(senha);
-  const temEspecial   = /[!@#$%¨&*();]/.test(senha);
+  const temEspecial = /[^A-Za-z0-9]/.test(senha);
   const tamanhoValido = senha.length >= 8;
 
   toggleRule(ruleLength, tamanhoValido);
@@ -183,3 +183,23 @@ if (themeToggle) {
     });
 }
 
+document.querySelectorAll(".toggle-password").forEach(icon => {
+  icon.addEventListener("click", () => {
+    const input = document.getElementById(icon.dataset.target);
+
+    // fade out
+    icon.classList.add("fading");
+
+    setTimeout(() => {
+      const isPassword = input.type === "password";
+
+      input.type = isPassword ? "text" : "password";
+
+      icon.classList.toggle("fa-eye");
+      icon.classList.toggle("fa-eye-slash");
+
+      // fade in
+      icon.classList.remove("fading");
+    }, 100); // tempo da animação
+  });
+});

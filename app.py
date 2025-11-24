@@ -35,7 +35,7 @@ OSRM_TABLE_MAX = int(os.getenv("OSRM_TABLE_MAX", "95"))
 # -------------------------------
 MONGO_URI = os.getenv(
     "MONGO_URI",
-    "a"
+    "uri"
 )
 client = MongoClient(MONGO_URI)
 db = client["PontoPlus"]
@@ -57,7 +57,7 @@ def senha_valida(senha):
     if not re.search(r"[0-9]", senha):
         return False
 
-    if not re.search(r"[!@#$%^&*(),.?\":{}|<>_\-+=/\\\[\]]", senha):
+    if not re.search(r"[^A-Za-z0-9]", senha):
         return False
 
     return True
@@ -75,16 +75,17 @@ def login():
 @app.route("/register", methods=["POST"])
 def register():
     usuario = request.form.get("usuario")
+    email = request.form.get("email")
     senha = request.form.get("senha")
 
-    # Regras
+    # Regras de validação
     import re
     regras = {
         "tamanho": len(senha) >= 8,
         "maiuscula": re.search(r"[A-Z]", senha),
         "minuscula": re.search(r"[a-z]", senha),
         "numero": re.search(r"\d", senha),
-        "simbolo": re.search(r"[!@#$%¨&*();]", senha),
+        "simbolo": re.search(r"[^A-Za-z0-9]", senha)
     }
 
     if not all(regras.values()):
@@ -94,11 +95,11 @@ def register():
             force_register=True
         )
 
-    # Usuário já existe
-    if db.users.find_one({"usuario": usuario}):
+    # Verifica se JÁ EXISTE usuário ou EMAIL no banco
+    if db.users.find_one({"$or": [{"usuario": usuario}, {"email": email}]}):
         return render_template(
             "login.html",
-            erro_register="Usuário já existe",
+            erro_register="Usuário ou Email já cadastrados",
             force_register=True
         )
 
@@ -107,6 +108,7 @@ def register():
 
     db.users.insert_one({
         "usuario": usuario,
+        "email": email,
         "password": hash_pw,
         "mfa_enabled": False,
         "mfa_secret": None,
@@ -172,7 +174,15 @@ def mfa_enroll_confirm():
     totp = pyotp.TOTP(secret)
 
     if not totp.verify(token):
-        return render_template("mfa_enroll.html", erro="Código inválido")
+        user = db.users.find_one({"usuario": session["usuario"]})
+        uri = totp.provisioning_uri(name=user["usuario"], issuer_name="PontoPlus")
+        img = qrcode.make(uri)
+        buf = io.BytesIO()
+        img.save(buf, format='PNG')
+        qr_base64 = base64.b64encode(buf.getvalue()).decode()
+        # -------------------------------------------------------------------
+        
+        return render_template("mfa_enroll.html", erro="Código inválido", qr=qr_base64)
 
     db.users.update_one(
         {"usuario": session["usuario"]},
@@ -472,17 +482,6 @@ def get_paradas_linha(linha_ref):
         {"_id": 0}
     ))
  
-    return jsonify(docs)
-
-    # ----------------------------
-    # 2. Se NÃO houver parâmetro sentido
-    # devolve ida + volta concatenados
-    # ----------------------------
-    docs = list(db.paradas.find(
-        {"linha_id": linha_id},
-        {"_id": 0}
-    ))
-
     return jsonify(docs)
 
 @app.route("/api/linha/<linha_id>")
