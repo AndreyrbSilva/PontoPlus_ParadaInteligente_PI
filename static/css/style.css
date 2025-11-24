@@ -27,8 +27,8 @@ select:focus-visible {
 }
 
 :root {
-  --brand-color: #a00;
-  --brand-dark: #800;
+  --brand-color: #4481eb;
+  --brand-dark: #4481eb;
   --text-color: #222;
   --bg-light: #e0e0e0;
   --bg-card: #fff;
@@ -82,8 +82,8 @@ body.dark-mode {
   --bg-light: #1F1F1F;
   --bg-card: #333;
   --text-color: #f5f5f5;
-  --brand-color: #ce4910;
-  --brand-dark: #a63b0c;
+  --brand-color: #00619e;
+  --brand-dark: #005285;
 }
 
 /* ======================================
@@ -163,7 +163,7 @@ body.dark-mode .header {
 .clock #hours,
 .clock #minutes {
   background: var(--brand-color);
-  color: white;
+  color: rgb(255, 255, 255);
   font-weight: bold;
   font-size: 1.1rem;
   padding: 0.3rem 0.8rem;
@@ -176,6 +176,88 @@ body.dark-mode .header {
   color: var(--text-color);
   font-weight: bold;
   font-size: 1.2rem;
+}
+
+/* Container principal para alinhar tudo ao centro verticalmente */
+.date-time-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px; /* Espaço entre data, hora e rodapé */
+}
+
+/* Data no topo */
+/* 1. Ajuste da Data no Topo (Dando um respiro em relação à hora) */
+.date-top {
+  font-size: 1rem;
+  font-weight: bold;
+  opacity: 0.9;
+  text-transform: uppercase;
+  margin-bottom: 2px; /* Aumentei aqui para separar da hora */
+}
+
+/* 2. Ajuste do Rodapé (Dia e Clima) */
+.clock-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  
+  /* AQUI ESTÁ O SEGREDO */
+  width: 100%;           
+  max-width: 200px;      /* Limita a largura para não irem para os extremos */
+  margin-top: 6px;      /* Empurra para baixo (afasta do relógio) */
+}
+
+/* Ajuste do ícone e temperatura */
+.weather-info {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+#dayName {
+  margin-left: 4px; /* Aumente ou diminua esse número para ajustar */
+}
+
+.header-left {
+  position: absolute;
+  left: 1.0rem;
+  top: 38%;
+  transform: translateY(-50%);
+}
+
+/* Configura o tamanho do SVG (substitui a antiga .app-logo) */
+.app-logo-svg {
+  height: 100px; /* Altura da logo */
+  width: auto;  /* Largura automática para não distorcer */
+  display: block;
+}
+
+/* 1. PALAVRA "Ponto" */
+.logo-text {
+  fill: #000000; /* Preto por padrão */
+  transition: fill 0.3s ease;
+}
+/* Modo Escuro: Ponto vira Branco */
+body.dark-mode .logo-text {
+  fill: #FFFFFF;
+}
+
+/* 2. ÍCONE (Ônibus e Sinal) */
+.logo-icon {
+  fill: #4481eb; /* NOVO: Azul Escuro no modo claro */
+  transition: fill 0.3s ease;
+}
+/* Modo Escuro: Ícone volta pro Azul Claro (Neon) */
+body.dark-mode .logo-icon {
+  fill: #0E8DDA;
+}
+
+/* Ajuste para celular */
+@media (max-width: 600px) {
+  .app-logo-svg {
+    height: 35px;
+  }
 }
 
 /* ======================================
@@ -423,6 +505,23 @@ body.dark-mode .status-badge {
 
 .status-cinza .status-dot circle {
   fill: #9e9e9e; /* cinza - longe */
+}
+
+
+.icon-container .fa-snowflake {
+  color: #00899b; /* Cor do ícone de ar condicionado */
+}
+
+.icon-container .fa-wifi {
+  color: #14941f;
+}
+
+body.dark-mode .icon-container .fa-snowflake{
+  color: #00e1ff;
+}
+
+body.dark-mode .icon-container .fa-wifi{
+  color: #00ff15;
 }
 
 .icon-container {
@@ -699,41 +798,39 @@ main {
   flex: 1;
 }
 
-/* ===== 🌙☀️ EFEITO GIRATÓRIO SUAVE (sem blur) ===== */
+/* ========================
+   ANIMAÇÃO DO BOTÃO DE TEMA
+   ======================== */
+
+/* Animação de Saída (Gira e some) */
+@keyframes rotateOut {
+    0% {
+        transform: rotate(0deg) scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: rotate(180deg) scale(0.5);
+        opacity: 0;
+    }
+}
+
+/* Animação de Entrada (Gira ao contrário e aparece) */
+@keyframes rotateIn {
+    0% {
+        transform: rotate(-180deg) scale(0.5);
+        opacity: 0;
+    }
+    100% {
+        transform: rotate(0deg) scale(1);
+        opacity: 1;
+    }
+}
+
+/* Classes controladas pelo JS */
 .icon.spin {
-  animation: spin 0.4s ease-in-out forwards;
+    animation: rotateOut 0.4s forwards;
 }
 
 .icon.spin-reverse {
-  animation: spinReverse 0.4s ease-in-out forwards;
-}
-
-@keyframes spin {
-  0% {
-    transform: rotate(0deg) scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: rotate(180deg) scale(1.2);
-    opacity: 0.7;
-  }
-  100% {
-    transform: rotate(360deg) scale(1);
-    opacity: 1;
-  }
-}
-
-@keyframes spinReverse {
-  0% {
-    transform: rotate(0deg) scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: rotate(-180deg) scale(1.2);
-    opacity: 0.7;
-  }
-  100% {
-    transform: rotate(-360deg) scale(1);
-    opacity: 1;
-  }
+    animation: rotateIn 0.4s forwards;
 }

@@ -12,6 +12,7 @@ import qrcode
 import base64
 import secrets
 import io
+import re
 from werkzeug.security import generate_password_hash, check_password_hash
 
 # -------------------------------
@@ -34,14 +35,38 @@ OSRM_TABLE_MAX = int(os.getenv("OSRM_TABLE_MAX", "95"))
 # -------------------------------
 MONGO_URI = os.getenv(
     "MONGO_URI",
-    "mongodb+srv://PontoPlus:mZI8y87XDrO7moSt@pontoplus.v7tiqaf.mongodb.net/?retryWrites=true&w=majority&appName=PontoPlus"
+    "uri"
 )
 client = MongoClient(MONGO_URI)
 db = client["PontoPlus"]
 
 # -------------------------------
+# Função de checar senha
+# -------------------------------
+
+def senha_valida(senha):
+    if len(senha) < 8:
+        return False
+
+    if not re.search(r"[A-Z]", senha):
+        return False
+
+    if not re.search(r"[a-z]", senha):
+        return False
+
+    if not re.search(r"[0-9]", senha):
+        return False
+
+    if not re.search(r"[^A-Za-z0-9]", senha):
+        return False
+
+    return True
+
+# -------------------------------
 # Páginas
 # -------------------------------
+from flask import render_template, request, redirect, url_for
+
 @app.route("/")
 def login():
     # Página inicial agora é o login
@@ -50,22 +75,46 @@ def login():
 @app.route("/register", methods=["POST"])
 def register():
     usuario = request.form.get("usuario")
+    email = request.form.get("email")
     senha = request.form.get("senha")
 
-    if db.users.find_one({"usuario": usuario}):
-        return jsonify({"erro": "Usuário já existe"}), 400
+    # Regras de validação
+    import re
+    regras = {
+        "tamanho": len(senha) >= 8,
+        "maiuscula": re.search(r"[A-Z]", senha),
+        "minuscula": re.search(r"[a-z]", senha),
+        "numero": re.search(r"\d", senha),
+        "simbolo": re.search(r"[^A-Za-z0-9]", senha)
+    }
 
+    if not all(regras.values()):
+        return render_template(
+            "login.html",
+            erro_register="A senha deve ter pelo menos 8 caracteres, incluir letras maiúsculas, minúsculas, números e símbolos.",
+            force_register=True
+        )
+
+    # Verifica se JÁ EXISTE usuário ou EMAIL no banco
+    if db.users.find_one({"$or": [{"usuario": usuario}, {"email": email}]}):
+        return render_template(
+            "login.html",
+            erro_register="Usuário ou Email já cadastrados",
+            force_register=True
+        )
+
+    # Criar usuário
     hash_pw = generate_password_hash(senha)
 
     db.users.insert_one({
         "usuario": usuario,
+        "email": email,
         "password": hash_pw,
         "mfa_enabled": False,
         "mfa_secret": None,
         "recovery_codes": []
     })
 
-    # AUTO LOGIN + IR PARA O ENROLL
     session["usuario"] = usuario
     session["mfa_pending"] = True
 
@@ -73,18 +122,20 @@ def register():
 
 @app.route("/login", methods=["POST"])
 def fazer_login():
-    usuario = request.form.get("usuario")
+    email = request.form.get("email")
     senha = request.form.get("senha")
 
-    user = db.users.find_one({"usuario": usuario})
+    # Agora procura o usuário pelo EMAIL
+    user = db.users.find_one({"email": email})
 
     if not user or not check_password_hash(user["password"], senha):
-        return render_template("login.html", erro="Usuário ou senha inválidos")
+        return render_template("login.html", erro="Email ou senha inválidos")
 
-    # Login básico (sem Flask-Login)
-    session["usuario"] = usuario
+    # Mantém login normal, mas salvando o NOME DE USUÁRIO na sessão
+    session["usuario"] = user["usuario"]
+    session["email"] = email
 
-    # Se MFA estiver habilitada, exigir verificação
+    # Se tiver MFA
     if user.get("mfa_enabled"):
         session["mfa_pending"] = True
         return redirect(url_for("mfa_verify"))
@@ -123,7 +174,15 @@ def mfa_enroll_confirm():
     totp = pyotp.TOTP(secret)
 
     if not totp.verify(token):
-        return "Código inválido", 400
+        user = db.users.find_one({"usuario": session["usuario"]})
+        uri = totp.provisioning_uri(name=user["usuario"], issuer_name="PontoPlus")
+        img = qrcode.make(uri)
+        buf = io.BytesIO()
+        img.save(buf, format='PNG')
+        qr_base64 = base64.b64encode(buf.getvalue()).decode()
+        # -------------------------------------------------------------------
+        
+        return render_template("mfa_enroll.html", erro="Código inválido", qr=qr_base64)
 
     db.users.update_one(
         {"usuario": session["usuario"]},
@@ -133,7 +192,8 @@ def mfa_enroll_confirm():
         }}
     )
 
-    session.pop("temp_secret", None)
+    session.pop("temp_secret")
+    session.pop("mfa_pending", None)
 
     return redirect(url_for("dashboard"))
 
@@ -156,7 +216,6 @@ def mfa_verify():
 
     return render_template("mfa_verify.html")
 
-
 @app.route("/painel")
 def painel():
     return render_template("index.html")
@@ -164,6 +223,7 @@ def painel():
 @app.route("/onibus/<onibus_id>")
 def onibus_page(onibus_id):
     return render_template("onibus.html", onibus_id=onibus_id)
+
 
 # -------------------------------
 # Helpers
@@ -363,35 +423,66 @@ def get_linhas():
 @app.route("/api/paradas_linha/<linha_ref>")
 def get_paradas_linha(linha_ref):
     """
-    Retorna as paradas de uma linha.
-    Aceita tanto '116' quanto 'L116' como referência.
+    Retorna as paradas de uma linha, podendo filtrar por sentido (?sentido=ida|volta).
+    Exemplo:
+       /api/paradas_linha/116?sentido=ida
+       /api/paradas_linha/L116?sentido=volta
     """
-    # Tenta buscar diretamente com e sem o prefixo "L"
-    paradas = list(db.paradas.find({"linha_id": f"L{linha_ref}"}, {"_id": 0}))
-    if not paradas:
-        paradas = list(db.paradas.find({"linha_id": linha_ref}, {"_id": 0}))
-
-    # Caso ainda não encontre, tenta buscar a linha correspondente
-    if not paradas:
-        linha = db.linhas.find_one(
-            {"$or": [{"numero_linha": int(linha_ref)}, {"linha_id": f"L{linha_ref}"}]},
+ 
+    sentido = request.args.get("sentido", None)  # ida | volta | None
+ 
+    # Normalizar referencia da linha
+    linha = db.linhas.find_one(
+        {
+            "$or": [
+                {"linha_id": linha_ref},
+                {"linha_id": f"L{linha_ref}"},
+                {"numero_linha": linha_ref if isinstance(linha_ref, int) else None},
+                {"numero_linha": int(linha_ref) if linha_ref.isdigit() else None}
+            ]
+        },
+        {"_id": 0}
+    )
+ 
+    if not linha:
+        return jsonify({"erro": "Linha não encontrada"}), 404
+ 
+    linha_id = linha["linha_id"]
+ 
+    # ----------------------------
+    # 1. Se houver sentido declarado
+    # ----------------------------
+    if sentido in ("ida", "volta"):
+        if "paradas" not in linha or sentido not in linha["paradas"]:
+            return jsonify([])
+ 
+        # Lista ordenada de IDs
+        lista_ids = linha["paradas"][sentido]
+ 
+        # Buscar todas as paradas do sentido
+        docs = list(db.paradas.find(
+            {"linha_id": linha_id, "sentido": sentido},
             {"_id": 0}
-        )
-        if linha:
-            paradas = list(db.paradas.find({"linha_id": linha["linha_id"]}, {"_id": 0}))
-
-    # Corrige formato das coordenadas, se necessário
-    for parada in paradas:
-        loc = parada.get("localizacao", {})
-        # Garante formato {"coordinates": [lon, lat]}
-        if isinstance(loc, dict):
-            if "lat" in loc and "lng" in loc:
-                parada["localizacao"] = {"coordinates": [loc["lng"], loc["lat"]]}
-            elif "coordinates" not in loc and len(loc) == 2:
-                parada["localizacao"] = {"coordinates": loc}
-
-    return jsonify(paradas)
-
+        ))
+ 
+        # Indexar por parada_id
+        mapa_paradas = {p["parada_id"]: p for p in docs}
+ 
+        # Ordenar na ordem oficial da linha
+        resultado = [mapa_paradas[id_] for id_ in lista_ids if id_ in mapa_paradas]
+ 
+        return jsonify(resultado)
+ 
+    # ----------------------------
+    # 2. Se NÃO houver parâmetro sentido
+    # devolve ida + volta concatenados
+    # ----------------------------
+    docs = list(db.paradas.find(
+        {"linha_id": linha_id},
+        {"_id": 0}
+    ))
+ 
+    return jsonify(docs)
 
 @app.route("/api/linha/<linha_id>")
 def get_linha_by_id(linha_id):
