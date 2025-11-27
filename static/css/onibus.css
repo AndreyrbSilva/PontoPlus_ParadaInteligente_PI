@@ -521,6 +521,12 @@ body.dark-mode .stop-item.open .stop-content {
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
+/* ➜ quando a sidebar estiver aberta, mova a legenda para a direita */
+body.sidebar-open .direcao-legenda {
+  left: 410px; /* use 320px se a sidebar tiver exatamente 320px */
+}
+
+
 body.dark-mode .direcao-legenda {
   /* --- efeito vidro escuro --- */
   backdrop-filter: blur(8px);

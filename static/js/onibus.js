@@ -3,6 +3,47 @@ let rotaNormal = true;
 let mapa;
 let lightTiles, darkTiles;
 
+document.addEventListener("DOMContentLoaded", () => {
+  const sidebar = document.querySelector(".sidebar");
+  const openBtn = document.getElementById("openSidebarBtn");
+  const closeBtn = document.getElementById("closeSidebarBtn");
+  
+  // 1. Verificar LocalStorage IMEDIATAMENTE ao carregar
+  const savedState = localStorage.getItem("sidebarState");
+  
+  // Se estava aberta antes, já aplica as classes agora
+  if (savedState === "open") {
+    sidebar.classList.add("open");
+    document.body.classList.add("sidebar-open");
+  }
+
+  // Função para lidar com o mapa (IMPORTANTE para Leaflet)
+  function adjustMap() {
+    // Espera a transição do CSS acabar (300ms) e redesenha o mapa
+    setTimeout(() => {
+        if (typeof map !== 'undefined') {
+            map.invalidateSize(); // Isso faz o Leaflet recalcular o centro e tamanho
+        }
+    }, 300);
+  }
+
+  // ABRIR
+  openBtn.addEventListener("click", () => {
+    sidebar.classList.add("open");
+    document.body.classList.add("sidebar-open");
+    localStorage.setItem("sidebarState", "open");
+    adjustMap();
+  });
+
+  // FECHAR
+  closeBtn.addEventListener("click", () => {
+    sidebar.classList.remove("open");
+    document.body.classList.remove("sidebar-open");
+    localStorage.setItem("sidebarState", "closed");
+    adjustMap();
+  });
+});
+
 fetch(`/api/onibus/${onibusId}`)
   .then(res => res.json())
   .then(data => {
@@ -753,3 +794,4 @@ function criarConteudoPopup(parada) {
     </div>
   `;
 }
+
