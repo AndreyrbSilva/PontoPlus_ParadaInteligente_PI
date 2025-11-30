@@ -2,37 +2,44 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Verificação MFA</title>
-    <style>
-        body { font-family: Arial; background:#f2f2f2; }
-        .box {
-            width: 420px; background: #fff; padding: 20px;
-            margin: 80px auto; border-radius: 10px; text-align:center;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-        }
-        input { padding: 10px; width: 80%; margin-top: 15px; }
-        button { margin-top: 15px; padding:10px 25px; cursor:pointer; }
-        .erro { color:red; margin-bottom:10px; }
-    </style>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mfa_verify.css') }}">
 </head>
 <body>
 
-<div class="box">
-    <h2>Verificação MFA</h2>
+    <div class="about">
+        
+        <div class="box">
+            <h2>Verificação MFA</h2>
 
-    {% if erro %}
-    <p class="erro">{{ erro }}</p>
-    {% endif %}
+            <p>Digite o código de 6 dígitos gerado pelo seu app autenticador:</p>
 
-    <p>Digite o código de 6 dígitos do seu app autenticador:</p>
+            <form id="mfaForm" action="/mfa" method="POST">
+                <input type="hidden" name="token" id="fullToken">
 
-    <form action="/mfa" method="POST">
-        <input type="text" name="token" placeholder="Código MFA" required />
-        <br>
-        <button type="submit">Verificar</button>
-    </form>
+                <div class="inputs-container">
+                    <input class="digit-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" />
+                    <input class="digit-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" />
+                    <input class="digit-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" />
+                    <input class="digit-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" />
+                    <input class="digit-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" />
+                    <input class="digit-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" />
+                </div>
+                
+                </form>
+                        
+            {% if erro %}
+                <p class="erro-msg">{{ erro }}</p>
+            {% endif %}
+        </div>
 
-</div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/mfa_verify.js') }}"></script>
 
 </body>
 </html>

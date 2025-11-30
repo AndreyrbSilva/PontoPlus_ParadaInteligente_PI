@@ -24,7 +24,7 @@ if (senhaInput) {
     const temMaiuscula = /[A-Z]/.test(senha);
     const temMinuscula = /[a-z]/.test(senha);
     const temNumero = /\d/.test(senha);
-    const temEspecial = /[!@#$%¨&*();]/.test(senha);
+    const temEspecial = /[^A-Za-z0-9]/.test(senha);
     const tamanhoValido = senha.length >= 8;
 
     let score = 0;
