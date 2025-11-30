@@ -355,13 +355,15 @@ form.sign-in-form {
 }
 
 #strength-bar {
-  width: 45%;
+  width: 100%;            /* Ocupa todo o espaço disponível... */
+  max-width: 360px;       /* ...mas trava no mesmo limite do input */
   height: 5px;
   background: #d1d1d1;
   border-radius: 5px;
-  margin-top: -5px;
+  margin-top: -5px;       /* Ajuste conforme necessário para aproximar do input */
   margin-bottom: 10px;
   overflow: hidden;
+  align-self: center;     /* Garante que fique centralizado se o pai for flex column */
 }
 
 #strength-fill {
@@ -925,4 +927,21 @@ body.dark-mode .password-field .toggle-password {
 
 body.dark-mode .password-field .toggle-password:hover {
   color: #fff;
+}
+
+/* Modo claro */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  border: none;
+  -webkit-text-fill-color: #3f3f3f;
+  -webkit-box-shadow: 0 0 0px 1000px #33333300 inset;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Modo escuro */
+body.dark-mode input:-webkit-autofill,
+body.dark-mode input:-webkit-autofill:hover,
+body.dark-mode input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #dddddd;
 }

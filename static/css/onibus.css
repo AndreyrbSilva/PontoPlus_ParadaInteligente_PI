@@ -501,34 +501,30 @@ body.dark-mode .stop-item.open .stop-content {
 }
 
 .direcao-legenda {
-  position: absolute;
-  bottom: 16px;
-  left: 18px;
-  padding: 8px 10px;
-  border-radius: 10px;
-  box-shadow: 0 6px 6px rgba(0, 0, 0, 0.329);
-  z-index: 900;
+  position: fixed;
+  bottom: calc(10px + env(safe-area-inset-bottom, 10px));
+  left: 20px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  z-index: 200;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  font-family: "Inter", sans-serif;
+  gap: 8px;
+  font-family: "Inter", "Segoe UI", sans-serif;
   font-size: 13px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.4);
   transition: all 0.3s ease;
-
-  /* --- efeito vidro claro --- */
-  backdrop-filter: blur(8px);
-  background: rgba(250, 250, 250, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
-/* ➜ quando a sidebar estiver aberta, mova a legenda para a direita */
 body.sidebar-open .direcao-legenda {
-  left: 410px; /* use 320px se a sidebar tiver exatamente 320px */
+  left: 410px;  /* mesmo tamanho da sidebar */
 }
-
 
 body.dark-mode .direcao-legenda {
-  /* --- efeito vidro escuro --- */
   backdrop-filter: blur(8px);
   background: rgba(0, 0, 0, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -567,7 +563,6 @@ body.dark-mode .texto-ida,
 body.dark-mode .texto-volta {
   color: #f0f0f0;
 }
-
 
 .paradas-header {
   display: flex;
@@ -869,7 +864,7 @@ body.dark-mode .leaflet-control-attribution a {
 /* --- Tablets e telas médias --- */
 @media (max-width: 1024px) {
   .sidebar {
-    width: 320px;
+    width: 330px;
   }
 
   .bus-header h1 {
@@ -881,8 +876,12 @@ body.dark-mode .leaflet-control-attribution a {
   }
 
   .direcao-legenda {
-    font-size: 12px;
-    padding: 6px 8px;
+    left: 12px;   /* quando sidebar fechada */
+    bottom: calc(10px + env(safe-area-inset-bottom, 10px)) !important;
+  }
+
+  body.sidebar-open .direcao-legenda {
+    left: 340px;  /* sidebar = 320px */
   }
 }
 
@@ -937,12 +936,6 @@ body.dark-mode .leaflet-control-attribution a {
     color: #f0f0f0;
   }
 
-  /* O mapa ocupa toda a tela */
-  #map {
-    height: 100vh;
-    width: 100%;
-  }
-
   /* Ajusta botões flutuantes */
   .theme-toggle-map {
     width: 48px;
@@ -976,6 +969,8 @@ body.dark-mode .leaflet-control-attribution a {
     font-size: 12px;
     padding: 3px 6px;
   }
+
+  
 }
 
 /* --- Telas muito pequenas --- */
@@ -1452,4 +1447,21 @@ body.dark-mode .leaflet-popup-close-button {
 
 body.dark-mode .leaflet-popup-close-button:hover {
   color: #d1d1d1 !important;
+}
+
+/* Modo claro */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  border: none;
+  -webkit-text-fill-color: #3f3f3f;
+  -webkit-box-shadow: 0 0 0px 1000px #33333300 inset;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Modo escuro */
+body.dark-mode input:-webkit-autofill,
+body.dark-mode input:-webkit-autofill:hover,
+body.dark-mode input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #dddddd;
 }
