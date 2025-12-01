@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: PontoPlus
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --bind 0.0.0.0:$PORT app:app
+    envVars:
+      - key: MONGO_URI
+        sync: false
+      - key: OSRM_HOST
+        sync: false
+      - key: OSRM_TABLE_MAX
+        sync: false

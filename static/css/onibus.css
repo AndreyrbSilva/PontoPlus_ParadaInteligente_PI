@@ -21,7 +21,15 @@ html, body {
 .stop-content,
 .stop-dot,
 .stop-title,
-.stop-time {
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip,
+.stop-time,
+.popup-card,
+.popup-header,
+.popup-subheader,
+.popup-body,
+.popup-time,
+.popup-ref {
   transition: 
     background-color 0.4s ease,
     color 0.4s ease,
@@ -1464,4 +1472,206 @@ body.dark-mode input:-webkit-autofill,
 body.dark-mode input:-webkit-autofill:hover,
 body.dark-mode input:-webkit-autofill:focus {
   -webkit-text-fill-color: #dddddd;
+}
+
+/* ==================================================================
+   ESTILO DOS MARCADORES "PING" (VERSÃO COMPACTA)
+   ================================================================== */
+
+.bus-marker-container {
+    transition: all 0.1s linear;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* Tamanho zero para o Leaflet não "cortar" o pulso */
+    width: 0;
+    height: 0;
+}
+
+.bus-rotating-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Bolinha Principal (Reduzida para 22px) */
+.bus-main-circle {
+    width: 22px;
+    height: 22px;
+    background-color: currentColor;
+    border: 2px solid white; /* Borda mais fina */
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+}
+
+/* Ícone dentro da bolinha (Corrigido) */
+.bus-svg-icon {
+    width: 14px; /* Tamanho proporcional */
+    height: 14px;
+    fill: white;
+    display: block; /* Garante que não bugue o layout */
+}
+
+/* Efeito de Pulso (Ajustado) */
+.bus-pulse {
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    background-color: currentColor;
+    border-radius: 50%;
+    opacity: 0.6;
+    z-index: 999;
+    animation: busPulseAnimation 2s infinite ease-out;
+}
+
+@keyframes busPulseAnimation {
+    0% { transform: scale(1); opacity: 0.6; }
+    100% { transform: scale(2.2); opacity: 0; }
+}
+
+
+@keyframes piscarParada {
+    0% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.1); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+/* Popup do ônibus */
+.popup-bus {
+    text-align: center;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+/* Cores do status de tempo */
+.status-normal {
+    color: inherit; /* Cor padrão do texto */
+}
+
+.status-perto {
+    color: #00ff88; /* Verde neon */
+    font-weight: bold;
+}
+
+.status-chegando {
+    color: #00ff88;
+    font-weight: bold;
+    animation: piscarTexto 1s infinite alternate;
+}
+
+@keyframes piscarTexto {
+    from { opacity: 1; text-shadow: 0 0 5px #00ff883f; }
+    to { opacity: 0.5; text-shadow: 0 0 0 transparent; }
+}
+
+/* ==================================================================
+   CORREÇÃO DEFINITIVA DO FUNDO DO POPUP
+   ================================================================== */
+
+/* 1. MODO CLARO (Padrão) */
+/* Força o fundo branco e texto escuro quando NÃO está em dark mode */
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+    background-color: #ffffff !important; /* Fundo branco */
+    border-radius: 10px !important;
+    color: #333333 !important;           /* Texto escuro */
+    box-shadow: 0 3px 14px rgba(0,0,0,0.4);
+}
+
+/* 2. MODO ESCURO (Ativado pela classe no body) */
+/* Força fundo cinza escuro e texto branco */
+body.dark-mode .leaflet-popup-content-wrapper,
+body.dark-mode .leaflet-popup-tip {
+    background-color: #242424 !important; /* Cinza chumbo */
+    color: #ffffff !important;           /* Texto branco */
+    border: 1px solid #444;              /* Borda sutil para separar do mapa */
+}
+
+/* 3. Correção do botão de fechar (X) */
+.leaflet-popup-close-button {
+    color: #888 !important;
+}
+body.dark-mode .leaflet-popup-close-button {
+    color: #ffffff !important; /* X branco no modo escuro */
+}
+
+/* 4. Ajustes internos do seu conteúdo */
+.popup-bus {
+    /* Remove margens extras que o Leaflet coloca */
+    margin: 5px 0; 
+}
+
+/* Linha separadora no modo claro */
+.popup-bus-header {
+    border-bottom: 1px solid #eee;
+}
+
+/* Linha separadora no modo escuro */
+body.dark-mode .popup-bus-header {
+    border-bottom: 1px solid #444;
+}
+
+/* ==================================================================
+   ESTILO DO POPUP DO ÔNIBUS (RESPONSIVO AO TEMA)
+   ================================================================== */
+
+/* 1. Estilização do Conteúdo Interno */
+.popup-bus {
+    font-family: 'Segoe UI', sans-serif;
+    min-width: 160px;
+    text-align: center;
+}
+
+.popup-bus-header {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.popup-bus-info {
+    font-size: 12px;
+    line-height: 1.6;
+    color: inherit; /* Herda a cor do tema */
+}
+
+.popup-bus-status {
+    margin-top: 5px;
+    font-weight: bold;
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(0, 102, 255, 0.1);
+    color: #0066ff;
+    display: inline-block;
+}
+
+/* 2. Hack para o Popup do Leaflet obedecer o Dark Mode */
+
+/* Fundo e Texto do Popup no Modo Escuro */
+body.dark-mode .leaflet-popup-content-wrapper,
+body.dark-mode .leaflet-popup-tip {
+    background-color: #1f1f1f; /* Cinza bem escuro */
+    color: #ffffff;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+}
+
+/* Ajuste da borda interna no modo escuro */
+body.dark-mode .popup-bus-header {
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+/* Botão de fechar (X) no modo escuro */
+body.dark-mode .leaflet-popup-close-button {
+    color: #ffffff !important;
 }

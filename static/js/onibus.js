@@ -68,9 +68,6 @@ function carregarParadas(paradas) {
       <div class="stop-content">
         <div class="stop-header">
           <span class="stop-title">${parada.nome_formatado || "Parada"}</span>
-          <span class="stop-time">${
-            parada.horario_prox ? `⏱️ ${parada.horario_prox}` : ""
-          }</span>
         </div>
         <div class="stop-details">
           <p><strong>Horários:</strong></p>
@@ -628,7 +625,13 @@ if (!document.querySelector('.custom-map-controls')) {
 
     // Inicializa
     ativarIda();
-
+    // INICIAR A SIMULAÇÃO DE FROTA
+    // Passamos os arrays de coordenadas (Ida e Volta) e as listas de paradas
+    // Atenção: segmentIda/segmentVolta são arrays de [lat, lng]
+    if (segmentIda.length > 0 && segmentVolta.length > 0) {
+        console.log("Iniciando simulação de ônibus...");
+        iniciarSimulacao(segmentIda, segmentVolta, paradasIda, paradasVolta);
+    }
   } catch (err) {
     console.error("Erro ao desenhar rota:", err);
   }
@@ -770,3 +773,508 @@ closeBtn.addEventListener('click', () => {
 });
 
 document.body.classList.add('sidebar-open');
+
+// ==========================================
+// CONFIGURAÇÕES DA SIMULAÇÃO
+// ==========================================
+const SIM_CONFIG = {
+    qtdOnibus: 8,           // Total de veículos
+    velocidadeMedia: 25,    // km/h (base para cálculo)
+    tempoParada: 5000,      // Tempo parado no ponto (ms)
+    intervaloAtualizacao: 16 // ~60fps
+};
+
+// ==========================================
+// FUNÇÕES AUXILIARES DE FORMATAÇÃO (AJUSTADO)
+// ==========================================
+function formatarETA(segundos) {
+    const minutos = Math.floor(segundos / 60);
+    const segundosRestantes = Math.floor(segundos);
+
+    // Lógica de Contagem Regressiva
+    if (segundosRestantes <= 20) {
+        // Abaixo de 20s: GATILHO DO "CHEGANDO"
+        return { texto: "Chegando", classe: "status-chegando" };
+        
+    } else if (segundosRestantes < 60) {
+        // Entre 21s e 59s: MOSTRA OS SEGUNDOS
+        return { texto: `${segundosRestantes} s`, classe: "status-perto" };
+        
+    } else if (minutos <= 5) {
+        // Acima de 1 min e abaixo de 5 min
+        return { texto: `${minutos} min`, classe: "status-perto" };
+        
+    } else {
+        // Normal
+        return { texto: `${minutos} min`, classe: "status-normal" };
+    }
+}
+
+// ==========================================
+// CLASSE DO ÔNIBUS (COM PREVISÃO CÍCLICA)
+// ==========================================
+// ==========================================
+// CLASSE DO ÔNIBUS (OTIMIZADA)
+// ==========================================
+class BusAgent {
+    constructor(id, rotaInicial, rotaReversa, paradasIda, paradasVolta, map, startOffset = 0, sentidoInicial = 'ida') {
+        this.id = id;
+        this.map = map;
+        
+        this.rotaIda = rotaInicial;
+        this.rotaVolta = rotaReversa;
+        this.paradasIda = paradasIda;
+        this.paradasVolta = paradasVolta;
+
+        this.sentido = sentidoInicial;
+        this.configurarRotas();
+        
+        // Posição inicial
+        this.index = Math.floor(startOffset * (this.rotaAtual.length - 1)); 
+        this.nextIndex = this.index + 1;
+        this.progress = 0;
+
+        // Física
+        this.speed = (Math.random() * 10 + 35); // Velocidade base
+        this.currentSpeed = this.speed;
+        this.isStopped = false;
+
+        // CONTROLE DE TEMPO PARA CÁLCULOS (NOVO)
+        this.timeSinceLastPrediction = 0; 
+        
+        this.marker = null;
+        this.criarMarcador();
+    }
+
+    configurarRotas() {
+        if (this.sentido === 'ida') {
+            this.rotaAtual = this.rotaIda;
+            this.paradasAtuais = this.paradasIda;
+            this.rotaProxima = this.rotaVolta;
+            this.paradasProximas = this.paradasVolta;
+        } else {
+            this.rotaAtual = this.rotaVolta;
+            this.paradasAtuais = this.paradasVolta;
+            this.rotaProxima = this.rotaIda;
+            this.paradasProximas = this.paradasIda;
+        }
+    }
+
+    criarMarcador() {
+        const corBus = this.sentido === 'ida' ? '#FF4500' : '#FF8C00';
+        
+        // Ícone SVG (o último que definimos)
+        const svgSimple = `
+        <svg class="bus-svg-icon" viewBox="0 -1.2 122.9 122.9" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="#ffffff">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M110.8,103.6h-7.6V114c0,3.6-2.9,6.5-6.5,6.5h-9c-3.6,0-6.5-2.9-6.5-6.5v-10.3H41.5V114
+            c0,3.6-2.9,6.5-6.5,6.5h-9c-3.6,0-6.5-2.9-6.5-6.5v-10.3H12v-82c0-7.6,4.4-13.1,13.3-16.5c17.6-6.9,54.6-6.9,72.3,0
+            c8.9,3.4,13.3,8.9,13.3,16.5V103.6z M118.6,40.4h-3.8V62h3.8c2.4,0,4.3-1.9,4.3-4.3V44.7C122.9,42.3,121,40.4,118.6,40.4z
+            M4.3,40.4h3.8V62H4.3C1.9,62,0,60.1,0,57.7V44.7C0,42.3,1.9,40.4,4.3,40.4z M46.4,8.6h30.1c0.9,0,1.6,0.7,1.6,1.6v5.2
+            c0,0.9-0.7,1.6-1.6,1.6H46.4c-0.9,0-1.6-0.7-1.6-1.6v-5.2C44.8,9.3,45.5,8.6,46.4,8.6z M22.9,23.2h76.7c1,0,1.9,0.9,1.9,1.9v42.8
+            c0,1-0.9,1.9-1.9,1.9H22.9c-1,0-1.9-0.9-1.9-1.9V25.1C21,24.1,21.8,23.2,22.9,23.2z M98.6,84.9c0-1.9-0.7-3.6-2-4.9
+            c-1.3-1.3-3-2-4.9-2c-1.9,0-3.5,0.7-4.9,2c-1.4,1.3-2,3-2,4.9c0,1.9,0.7,3.5,2,4.8c1.4,1.3,3,2,4.9,2c1.9,0,3.6-0.7,4.9-2
+            C98,88.4,98.6,86.8,98.6,84.9z M38.1,84.9c0-1.9-0.7-3.6-2-4.9c-1.3-1.3-3-2-4.9-2c-1.9,0-3.6,0.7-4.9,2c-1.3,1.3-2,3-2,4.9
+            c0,1.9,0.6,3.5,2,4.8c1.3,1.3,3,2,4.9,2c2,0,3.6-0.7,4.9-2C37.4,88.4,38.1,86.8,38.1,84.9z"/>
+        </svg>`;
+
+        const busIcon = L.divIcon({
+            className: 'bus-marker-container',
+            html: `
+                <div class="bus-rotating-wrapper" style="color: ${corBus};">
+                    <div class="bus-pulse"></div>
+                    <div class="bus-main-circle">
+                        ${svgSimple}
+                    </div>
+                </div>
+            `,
+            iconSize: [26, 26], 
+            iconAnchor: [13, 13]
+        });
+
+        const startPos = this.rotaAtual[this.index];
+        this.marker = L.marker(startPos, { icon: busIcon, zIndexOffset: 1000 });
+        this.marker.bindPopup(() => this.getPopupContent());
+        this.marker.addTo(this.map);
+    }
+
+    gerarIcone() {
+        const corBus = this.sentido === 'ida' ? '#FF4500' : '#FF8C00';
+        
+        const svgSimple = `
+        <svg class="bus-svg-icon" viewBox="0 -1.2 122.9 122.9" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="#ffffff">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M110.8,103.6h-7.6V114c0,3.6-2.9,6.5-6.5,6.5h-9c-3.6,0-6.5-2.9-6.5-6.5v-10.3H41.5V114
+            c0,3.6-2.9,6.5-6.5,6.5h-9c-3.6,0-6.5-2.9-6.5-6.5v-10.3H12v-82c0-7.6,4.4-13.1,13.3-16.5c17.6-6.9,54.6-6.9,72.3,0
+            c8.9,3.4,13.3,8.9,13.3,16.5V103.6z M118.6,40.4h-3.8V62h3.8c2.4,0,4.3-1.9,4.3-4.3V44.7C122.9,42.3,121,40.4,118.6,40.4z
+            M4.3,40.4h3.8V62H4.3C1.9,62,0,60.1,0,57.7V44.7C0,42.3,1.9,40.4,4.3,40.4z M46.4,8.6h30.1c0.9,0,1.6,0.7,1.6,1.6v5.2
+            c0,0.9-0.7,1.6-1.6,1.6H46.4c-0.9,0-1.6-0.7-1.6-1.6v-5.2C44.8,9.3,45.5,8.6,46.4,8.6z M22.9,23.2h76.7c1,0,1.9,0.9,1.9,1.9v42.8
+            c0,1-0.9,1.9-1.9,1.9H22.9c-1,0-1.9-0.9-1.9-1.9V25.1C21,24.1,21.8,23.2,22.9,23.2z M98.6,84.9c0-1.9-0.7-3.6-2-4.9
+            c-1.3-1.3-3-2-4.9-2c-1.9,0-3.5,0.7-4.9,2c-1.4,1.3-2,3-2,4.9c0,1.9,0.7,3.5,2,4.8c1.4,1.3,3,2,4.9,2c1.9,0,3.6-0.7,4.9-2
+            C98,88.4,98.6,86.8,98.6,84.9z M38.1,84.9c0-1.9-0.7-3.6-2-4.9c-1.3-1.3-3-2-4.9-2c-1.9,0-3.6,0.7-4.9,2c-1.3,1.3-2,3-2,4.9
+            c0,1.9,0.6,3.5,2,4.8c1.3,1.3,3,2,4.9,2c2,0,3.6-0.7,4.9-2C37.4,88.4,38.1,86.8,38.1,84.9z"/>
+        </svg>`;
+
+        return L.divIcon({
+            className: 'bus-marker-container',
+            html: `
+                <div class="bus-rotating-wrapper" style="color: ${corBus};">
+                    <div class="bus-pulse"></div>
+                    <div class="bus-main-circle">
+                        ${svgSimple}
+                    </div>
+                </div>
+            `,
+            iconSize: [26, 26], 
+            iconAnchor: [13, 13]
+        });
+    }
+
+    criarMarcador() {
+        const startPos = this.rotaAtual[this.index];
+        // Usa o método gerarIcone
+        this.marker = L.marker(startPos, { icon: this.gerarIcone(), zIndexOffset: 1000 });
+        this.marker.bindPopup(() => this.getPopupContent());
+        this.marker.addTo(this.map);
+    }
+
+    getPopupContent() {
+        const corIcone = this.sentido === 'ida' ? '#FF4500' : '#FF8C00';
+        
+        const iconBusTitle = `
+        <svg style="width:14px;height:14px;fill:${corIcone};"
+            viewBox="0 -1.2 122.9 122.9"
+            xmlns="http://www.w3.org/2000/svg">
+
+            <path fill-rule="evenodd" clip-rule="evenodd"
+                d="M110.8,103.6h-7.6V114c0,3.6-2.9,6.5-6.5,6.5h-9c-3.6,0-6.5-2.9-6.5-6.5v-10.3H41.5V114
+                c0,3.6-2.9,6.5-6.5,6.5h-9c-3.6,0-6.5-2.9-6.5-6.5v-10.3H12v-82c0-7.6,4.4-13.1,13.3-16.5c17.6-6.9,54.6-6.9,72.3,0
+                c8.9,3.4,13.3,8.9,13.3,16.5V103.6z M118.6,40.4h-3.8V62h3.8c2.4,0,4.3-1.9,4.3-4.3V44.7C122.9,42.3,121,40.4,118.6,40.4z
+                M4.3,40.4h3.8V62H4.3C1.9,62,0,60.1,0,57.7V44.7C0,42.3,1.9,40.4,4.3,40.4z M46.4,8.6h30.1c0.9,0,1.6,0.7,1.6,1.6v5.2
+                c0,0.9-0.7,1.6-1.6,1.6H46.4c-0.9,0-1.6-0.7-1.6-1.6v-5.2C44.8,9.3,45.5,8.6,46.4,8.6z M22.9,23.2h76.7c1,0,1.9,0.9,1.9,1.9v42.8
+                c0,1-0.9,1.9-1.9,1.9H22.9c-1,0-1.9-0.9-1.9-1.9V25.1C21,24.1,21.8,23.2,22.9,23.2z M98.6,84.9c0-1.9-0.7-3.6-2-4.9
+                c-1.3-1.3-3-2-4.9-2c-1.9,0-3.5,0.7-4.9,2c-1.4,1.3-2,3-2,4.9c0,1.9,0.7,3.5,2,4.8c1.4,1.3,3,2,4.9,2c1.9,0,3.6-0.7,4.9-2
+                C98,88.4,98.6,86.8,98.6,84.9z M38.1,84.9c0-1.9-0.7-3.6-2-4.9c-1.3-1.3-3-2-4.9-2c-1.9,0-3.6,0.7-4.9,2c-1.3,1.3-2,3-2,4.9
+                c0,1.9,0.6,3.5,2,4.8c1.3,1.3,3,2,4.9,2c2,0,3.6-0.7,4.9-2C37.4,88.4,38.1,86.8,38.1,84.9z"/>
+        </svg>`;
+
+        const statusTexto = this.isStopped ? "Embarcando..." : "Em movimento";
+
+        return `
+            <div class="popup-bus">
+                <div class="popup-bus-header">
+                    ${iconBusTitle}
+                    <span>Ônibus ${this.id}</span>
+                </div>
+                <div class="popup-bus-info">
+                    Sentido: <strong>${this.sentido.toUpperCase()}</strong><br>
+                    Velocidade: <strong id="pop-speed-${this.id}">${Math.round(this.currentSpeed)} km/h</strong>
+                </div>
+                <div id="pop-status-${this.id}" class="popup-bus-status">
+                    ${statusTexto}
+                </div>
+            </div>
+        `;
+    }
+
+    update(dt) {
+        // Controle de Visibilidade (Ida/Volta)
+        const devoAparecer = (rotaNormal && this.sentido === 'ida') || (!rotaNormal && this.sentido === 'volta');
+        if (devoAparecer) {
+            if (!this.map.hasLayer(this.marker)) this.map.addLayer(this.marker);
+        } else {
+            if (this.map.hasLayer(this.marker)) this.map.removeLayer(this.marker);
+        }
+
+        if (this.isStopped) {
+            this.atualizarPopupDinamico();
+            return;
+        }
+
+        const p1 = this.rotaAtual[this.index];
+        const p2 = this.rotaAtual[this.nextIndex];
+
+        if (!p1 || !p2) {
+            this.trocarSentido();
+            return;
+        }
+
+        const dist = this.map.distance(p1, p2);
+        
+        // Se a distância for muito pequena, pula para o próximo ponto
+        if (dist < 1) {
+            this.avancarIndice();
+            return;
+        }
+
+        // Simulação de velocidade com ruído leve
+        const noise = Math.sin(Date.now() / 1000 + this.id) * 5; 
+        this.currentSpeed = Math.max(0, this.speed + noise);
+
+        const speedMS = this.currentSpeed / 3.6;
+        const moveDist = speedMS * dt;
+        const deltaProgress = moveDist / dist; // Porcentagem do segmento percorrida
+        this.progress += deltaProgress;
+
+        // Interpolação da posição
+        const lat = p1[0] + (p2[0] - p1[0]) * this.progress;
+        const lng = p1[1] + (p2[1] - p1[1]) * this.progress;
+        const newPos = [lat, lng];
+
+        this.marker.setLatLng(newPos);
+        this.atualizarPopupDinamico();
+
+        // ----------------------------------------------------
+        // OTIMIZAÇÃO: Atualiza previsões apenas a cada 1 segundo
+        // ----------------------------------------------------
+        this.timeSinceLastPrediction += dt;
+        if (this.timeSinceLastPrediction >= 1.0) { // 1.0 segundos
+            const distRestanteNoSegmento = dist * (1 - this.progress);
+            this.atualizarPrevisoesParadas(distRestanteNoSegmento);
+            this.timeSinceLastPrediction = 0; // Reseta o timer
+        }
+
+        // Verifica se completou o segmento
+        if (this.progress >= 1) {
+            this.progress = 0;
+            this.avancarIndice();
+        }
+    }
+
+    avancarIndice() {
+        this.index++;
+        this.nextIndex = this.index + 1;
+
+        if (this.nextIndex >= this.rotaAtual.length) {
+            this.trocarSentido();
+            return;
+        }
+        this.verificarParada();
+    }
+
+    verificarParada() {
+        const posAtual = this.rotaAtual[this.index];
+        
+        // Verifica se há uma parada a menos de 25 metros
+        const paradaProxima = this.paradasAtuais.find(p => {
+            if(!p.localizacao?.coordinates) return false;
+            const [plon, plat] = p.localizacao.coordinates;
+            const dist = this.map.distance(posAtual, [plat, plon]);
+            return dist < 25; 
+        });
+
+        if (paradaProxima) {
+            this.realizarParada(paradaProxima);
+        }
+    }
+
+    realizarParada(parada) {
+        this.isStopped = true;
+        this.currentSpeed = 0;
+        
+        // 1. Remove previsão deste ônibus da parada atual (pois ele já chegou)
+        if(parada.previsoes) {
+            parada.previsoes = parada.previsoes.filter(p => p.busId !== this.id);
+            // Atualiza o display para "Chegou" ou mostra o próximo
+            if(parada.previsoes.length > 0) {
+                 atualizarDisplays(parada);
+            } else {
+                 // Reseta display se não houver mais ônibus vindo
+                 const lat = parada.localizacao.coordinates[1];
+                 const item = document.querySelector(`.stop-item[data-lat="${lat}"] .stop-details ul`);
+                 if(item) item.innerHTML = "<li>--:--</li>";
+            }
+        }
+
+        // Estilo visual
+        const el = this.marker.getElement();
+        if(el) el.classList.add('bus-stopped');
+
+        setTimeout(() => {
+            this.isStopped = false;
+            if(el) el.classList.remove('bus-stopped');
+            
+            // 2. IMPORTANTE: Força recálculo IMEDIATO ao sair da parada
+            // Isso garante que a próxima parada receba a previsão assim que o ônibus sai
+            this.atualizarPrevisoesParadas(0); 
+
+        }, SIM_CONFIG.tempoParada);
+    }
+
+    trocarSentido() {
+        // Lógica de inversão
+        this.sentido = this.sentido === 'ida' ? 'volta' : 'ida';
+        this.configurarRotas();
+        
+        this.index = 0;
+        this.nextIndex = 1;
+        this.progress = 0;
+
+        // Atualiza cor do ícone
+        this.marker.setIcon(this.gerarIcone());
+    }
+
+    atualizarPopupDinamico() {
+        if (this.marker && this.marker.isPopupOpen()) {
+            const elSpeed = document.getElementById(`pop-speed-${this.id}`);
+            const elStatus = document.getElementById(`pop-status-${this.id}`);
+            if (elSpeed) elSpeed.innerText = `${Math.round(this.currentSpeed)} km/h`;
+            if (elStatus) elStatus.innerText = this.isStopped ? "Embarcando..." : "Em movimento";
+        }
+    }
+
+    // ==========================================
+    // LÓGICA DE PREVISÃO
+    // ==========================================
+    atualizarPrevisoesParadas(distRestanteNoSegmento) {
+        let distanciaAcumulada = distRestanteNoSegmento;
+        // Usa a média da velocidade configurada para estabilidade, não a velocidade instantânea
+        let busSpeedMS = Math.max(1, SIM_CONFIG.velocidadeMedia / 3.6); 
+
+        // 1. Percorre a rota ATUAL do ponto onde o ônibus está até o fim
+        for (let i = this.index + 1; i < this.rotaAtual.length - 1; i++) {
+            const pA = this.rotaAtual[i];
+            const pB = this.rotaAtual[i+1];
+            distanciaAcumulada += this.map.distance(pA, pB);
+
+            // Verifica paradas na rota atual
+            this.calcularTempoParaParadas(pB, distanciaAcumulada, busSpeedMS, this.paradasAtuais);
+        }
+
+        // 2. (Opcional) Percorre a PRÓXIMA rota para dar previsões de ciclo contínuo
+        // Se quiser economizar CPU, pode comentar este bloco 'distanciaFase2'
+        let distanciaFase2 = distanciaAcumulada;
+        const limiteFase2 = Math.floor(this.rotaProxima.length * 0.5); // Olha 50% da próxima rota
+        for (let j = 0; j < limiteFase2 - 1; j++) {
+            const pA = this.rotaProxima[j];
+            const pB = this.rotaProxima[j+1];
+            distanciaFase2 += this.map.distance(pA, pB);
+            this.calcularTempoParaParadas(pB, distanciaFase2, busSpeedMS, this.paradasProximas);
+        }
+    }
+
+    calcularTempoParaParadas(pontoRota, distancia, velocidade, listaParadas) {
+        listaParadas.forEach(parada => {
+            if (!parada.localizacao?.coordinates) return;
+            const [plon, plat] = parada.localizacao.coordinates;
+            
+            // Se o ponto da rota está perto da parada (40m)
+            if (this.map.distance(pontoRota, [plat, plon]) < 40) {
+                const segundosParaChegar = distancia / velocidade;
+                
+                if (!parada.previsoes) parada.previsoes = [];
+                
+                // Remove previsão antiga deste ônibus para atualizar com a nova
+                parada.previsoes = parada.previsoes.filter(p => p.busId !== this.id);
+                
+                // Só adiciona se estiver a menos de 40 min
+                if (segundosParaChegar < 2400) {
+                    parada.previsoes.push({ 
+                        busId: this.id, 
+                        segundos: segundosParaChegar 
+                    });
+                }
+                
+                // Ordena para pegar o menor tempo
+                parada.previsoes.sort((a, b) => a.segundos - b.segundos);
+                
+                if (parada.previsoes.length > 0) {
+                    const dados = formatarETA(parada.previsoes[0].segundos);
+                    parada.horario_prox = dados.texto; 
+                    parada.classe_status = dados.classe; 
+                }
+
+                // Atualiza a interface
+                atualizarDisplays(parada);
+            }
+        });
+    }
+}
+
+// ==========================================
+// GERENCIADOR DA FROTA
+// ==========================================
+let frota = [];
+let lastTime = 0;
+
+function iniciarSimulacao(segmentIda, segmentVolta, paradasIda, paradasVolta) {
+    if (!mapa) return;
+    
+    frota.forEach(b => mapa.removeLayer(b.marker));
+    frota = [];
+// Antes estava: i < 4
+    const QUANTIDADE_POR_SENTIDO = 2; 
+
+    // Ônibus na IDA
+    for (let i = 0; i < QUANTIDADE_POR_SENTIDO; i++) {
+        // Ajusta o espaçamento (offset) para dividir bem a rota
+        // Se são 2 ônibus, offset será 0 e 0.5 (começo e meio)
+        const offset = i * (1 / QUANTIDADE_POR_SENTIDO); 
+        frota.push(new BusAgent(100 + i, segmentIda, segmentVolta, paradasIda, paradasVolta, mapa, offset, 'ida'));
+    }
+
+    // Ônibus na VOLTA
+    for (let i = 0; i < QUANTIDADE_POR_SENTIDO; i++) {
+        const offset = i * (1 / QUANTIDADE_POR_SENTIDO); 
+        frota.push(new BusAgent(200 + i, segmentIda, segmentVolta, paradasIda, paradasVolta, mapa, offset, 'volta'));
+    }
+
+    requestAnimationFrame(gameLoop);
+}
+
+function gameLoop(timestamp) {
+    if (!lastTime) lastTime = timestamp;
+    const deltaTime = (timestamp - lastTime) / 1000;
+    lastTime = timestamp;
+
+    frota.forEach(bus => bus.update(deltaTime));
+
+    requestAnimationFrame(gameLoop);
+}
+
+// ==========================================
+// INTEGRAÇÃO COM A UI (AJUSTADO PARA A LISTA)
+// ==========================================
+function atualizarDisplays(parada) {
+    if (!parada.previsoes || parada.previsoes.length === 0) return;
+
+    // Pega o ônibus mais próximo
+    const melhorPrevisao = parada.previsoes[0];
+    const dadosFormatados = formatarETA(melhorPrevisao.segundos);
+
+    // 1. Atualiza a Sidebar
+    const lat = parada.localizacao.coordinates[1];
+    const stopItem = document.querySelector(`.stop-item[data-lat="${lat}"]`);
+    
+    if (stopItem) {
+        // MUDANÇA AQUI: Alvo agora é a lista dentro de details, não o header
+        const listaHorarios = stopItem.querySelector('.stop-details ul');
+        
+        // Opcional: Limpar o tempo do header se ele existir estático
+        const headerTime = stopItem.querySelector('.stop-header .stop-time');
+        if(headerTime) headerTime.textContent = ""; 
+
+        if (listaHorarios) {
+            // Substitui o "--:--" pelo tempo formatado (SEM EMOJI)
+            // Mantemos o estilo de lista <li>
+            listaHorarios.innerHTML = `<li class="${dadosFormatados.classe}">${dadosFormatados.texto}</li>`;
+        }
+    }
+
+    // 2. Atualiza o Popup (se aberto)
+    if (mapa) {
+        mapa.eachLayer(layer => {
+            if (layer instanceof L.Marker && layer.getPopup() && layer.getPopup().isOpen()) {
+                const latlng = layer.getLatLng();
+                const [plon, plat] = parada.localizacao.coordinates;
+                
+                // Compara posição com tolerância pequena (float)
+                if (Math.abs(latlng.lat - plat) < 0.0001 && Math.abs(latlng.lng - plon) < 0.0001) {
+                    const contentDiv = layer.getPopup().getElement().querySelector('.popup-time');
+                    if (contentDiv) {
+                        contentDiv.className = 'popup-time ' + dadosFormatados.classe;
+                        contentDiv.innerHTML = `Próximo: ${dadosFormatados.texto}`;
+                    }
+                }
+            }
+        });
+    }
+}

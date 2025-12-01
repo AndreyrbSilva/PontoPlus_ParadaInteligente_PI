@@ -2,7 +2,8 @@ import time
 import math
 import requests
 from flask_compress import Compress
-from flask import Flask, render_template, request, redirect, url_for, jsonify, session
+# NOVO: Importações para lidar com arquivos e segurança
+from flask import Flask, render_template, request, redirect, url_for, jsonify, session, send_from_directory
 from flask_cors import CORS
 from pymongo import MongoClient
 from datetime import datetime, timedelta
@@ -14,6 +15,9 @@ import secrets
 import io
 import re
 from werkzeug.security import generate_password_hash, check_password_hash
+import time
+from werkzeug.utils import secure_filename
+from bson.objectid import ObjectId # Importação para IDs do MongoDB
 
 # -------------------------------
 # Configuração básica do Flask
@@ -25,45 +29,53 @@ Compress(app)
 app.secret_key = secrets.token_hex(32)
 
 # -------------------------------
+# Configuração de Upload (PASTA PROTEGIDA)
+# -------------------------------
+# As fotos serão salvas aqui, FORA da pasta 'static' para segurança.
+UPLOAD_FOLDER = 'uploads/profile_data' 
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+
+# Garante que a pasta existe
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# -------------------------------
 # Configurações (ambiente / padrão)
 # -------------------------------
-OSRM_HOST = os.getenv("OSRM_HOST", "https://router.project-osrm.org")
+OSRM_HOST = os.getenv("OSRM_HOST")
 OSRM_TABLE_MAX = int(os.getenv("OSRM_TABLE_MAX", "95"))
 
 # -------------------------------
 # Conexão com o MongoDB
 # -------------------------------
-MONGO_URI = os.getenv(
-    "MONGO_URI",
-    "uri"
-)
+MONGO_URI = os.getenv("MONGO_URI",)
 client = MongoClient(MONGO_URI)
 db = client["PontoPlus"]
 
 # -------------------------------
-# Função de checar senha
+# Helpers de Segurança
 # -------------------------------
+
+def allowed_file(filename):
+    """Verifica se a extensão do arquivo é permitida."""
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def senha_valida(senha):
     if len(senha) < 8:
         return False
-
     if not re.search(r"[A-Z]", senha):
         return False
-
     if not re.search(r"[a-z]", senha):
         return False
-
     if not re.search(r"[0-9]", senha):
         return False
-
     if not re.search(r"[^A-Za-z0-9]", senha):
         return False
-
     return True
 
 # -------------------------------
-# Páginas
+# Páginas e Rotas de Autenticação
 # -------------------------------
 from flask import render_template, request, redirect, url_for
 
@@ -78,8 +90,7 @@ def register():
     email = request.form.get("email")
     senha = request.form.get("senha")
 
-    # Regras de validação
-    import re
+    # Regras de validação (mantidas)
     regras = {
         "tamanho": len(senha) >= 8,
         "maiuscula": re.search(r"[A-Z]", senha),
@@ -95,7 +106,6 @@ def register():
             force_register=True
         )
 
-    # Verifica se JÁ EXISTE usuário ou EMAIL no banco
     if db.users.find_one({"$or": [{"usuario": usuario}, {"email": email}]}):
         return render_template(
             "login.html",
@@ -106,16 +116,20 @@ def register():
     # Criar usuário
     hash_pw = generate_password_hash(senha)
 
-    db.users.insert_one({
+    result = db.users.insert_one({
         "usuario": usuario,
         "email": email,
         "password": hash_pw,
         "mfa_enabled": False,
         "mfa_secret": None,
-        "recovery_codes": []
+        "recovery_codes": [],
+        "profile_pic": None # NOVO: Campo da foto de perfil
     })
 
     session["usuario"] = usuario
+    session["email"] = email
+    session["user_id"] = str(result.inserted_id) # NOVO: Salva o ID
+    session["profile_pic"] = None # NOVO: Não há foto no momento do cadastro
     session["mfa_pending"] = True
 
     return redirect(url_for("mfa_enroll"))
@@ -125,15 +139,16 @@ def fazer_login():
     email = request.form.get("email")
     senha = request.form.get("senha")
 
-    # Agora procura o usuário pelo EMAIL
     user = db.users.find_one({"email": email})
 
     if not user or not check_password_hash(user["password"], senha):
         return render_template("login.html", erro="Email ou senha inválidos")
 
-    # Mantém login normal, mas salvando o NOME DE USUÁRIO na sessão
+    # Dados do usuário na sessão (incluindo ID e foto)
     session["usuario"] = user["usuario"]
     session["email"] = email
+    session["user_id"] = str(user["_id"]) # NOVO: ID do usuário
+    session["profile_pic"] = user.get("profile_pic") # NOVO: Nome do arquivo da foto
 
     # Se tiver MFA
     if user.get("mfa_enabled"):
@@ -174,13 +189,13 @@ def mfa_enroll_confirm():
     totp = pyotp.TOTP(secret)
 
     if not totp.verify(token):
+        # Recria QR Code em caso de erro (mantido)
         user = db.users.find_one({"usuario": session["usuario"]})
         uri = totp.provisioning_uri(name=user["usuario"], issuer_name="PontoPlus")
         img = qrcode.make(uri)
         buf = io.BytesIO()
         img.save(buf, format='PNG')
         qr_base64 = base64.b64encode(buf.getvalue()).decode()
-        # -------------------------------------------------------------------
         
         return render_template("mfa_enroll.html", erro="Código inválido", qr=qr_base64)
 
@@ -210,12 +225,88 @@ def mfa_verify():
 
         if totp.verify(token):
             session.pop("mfa_pending")
+            # NOVO: Garante que os dados da sessão estão atualizados após o MFA
+            session["user_id"] = str(user["_id"])
+            session["profile_pic"] = user.get("profile_pic")
             return redirect(url_for("dashboard"))
 
         return render_template("mfa_verify.html", erro="Código incorreto")
 
     return render_template("mfa_verify.html")
 
+# -------------------------------
+# Rota de Upload de Avatar (Protegida)
+# -------------------------------
+@app.route('/upload_avatar', methods=['POST'])
+def upload_avatar():
+    # Deve estar logado e ter o ID na sessão
+    if 'user_id' not in session: 
+        return redirect(url_for('login'))
+
+    # Verifica se o arquivo foi enviado
+    if 'file' not in request.files or request.files['file'].filename == '':
+        return redirect(url_for('dashboard'))
+
+    file = request.files['file']
+    user_id_str = session["user_id"] # ID único do usuário
+    
+    if file and allowed_file(file.filename):
+        # 1. Cria um nome de arquivo SEGURO e baseado no ID
+        ext = file.filename.rsplit('.', 1)[1].lower()
+        
+        # O nome do arquivo é o ID do usuário + extensão (Ex: 60c2d...54a.png)
+        filename = f"{user_id_str}.{ext}"
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        
+        # 2. Deleta arquivos antigos do usuário (com outra extensão) para evitar lixo no disco
+        user = db.users.find_one({"_id": ObjectId(user_id_str)})
+        if user and user.get("profile_pic"):
+            old_filename = user["profile_pic"]
+            old_path = os.path.join(app.config['UPLOAD_FOLDER'], old_filename)
+            if os.path.exists(old_path):
+                os.remove(old_path)
+        
+        # 3. Salva o novo arquivo
+        file.save(filepath)
+
+        # 4. Atualiza o banco e a sessão
+        db.users.update_one(
+            {"_id": ObjectId(user_id_str)},
+            {"$set": {"profile_pic": filename}}
+        )
+
+        session["profile_pic"] = filename
+        
+        return redirect(url_for('dashboard'))
+
+    return redirect(url_for('dashboard'))
+
+# -------------------------------
+# Rota de Visualização de Avatar (PROTEGIDA)
+# -------------------------------
+@app.route('/get_avatar/<filename>')
+def get_avatar(filename):
+    # 1. VERIFICAÇÃO DE LOGIN: Apenas usuários logados podem tentar acessar
+    if 'user_id' not in session:
+        return redirect(url_for('static', filename='images/default_avatar.png'))
+    
+    # 2. VERIFICAÇÃO DE PROPRIEDADE: Checa se o arquivo é do usuário logado
+    user_id_str = session["user_id"]
+    if not filename.startswith(user_id_str):
+        # Nega acesso se o arquivo não for baseado no ID do usuário logado
+        return "Acesso Negado", 403
+
+    # 3. Serve o arquivo da pasta protegida (fora de static)
+    try:
+        # send_from_directory serve o arquivo diretamente, ignorando a pasta static
+        return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+    except FileNotFoundError:
+        # Se a foto existir no banco mas não no disco, redireciona para o default
+        return redirect(url_for('static', filename='images/default_avatar.png'))
+
+# -------------------------------
+# Rotas de renderização
+# -------------------------------
 @app.route("/painel")
 def painel():
     return render_template("index.html")
@@ -224,17 +315,26 @@ def painel():
 def onibus_page(onibus_id):
     return render_template("onibus.html", onibus_id=onibus_id)
 
+@app.route("/dashboard")
+def dashboard():
+    if "usuario" not in session:
+        return redirect(url_for("login"))
+
+    if session.get("mfa_pending"):
+        return redirect(url_for("mfa_verify"))
+
+    return render_template("dashboard.html", cache_buster=time.time())
 
 # -------------------------------
-# Helpers
+# Helpers de OSRM e APIs (sem alterações)
 # -------------------------------
 def fmt_coord(coord):
-    """Garante formato lon,lat com casas decimais."""
+# ... código da função fmt_coord
     lon, lat = float(coord[0]), float(coord[1])
     return f"{lon:.6f},{lat:.6f}"
 
 def safe_request_get(url, timeout=10):
-    """Requisição GET com tratamento de erro."""
+# ... código da função safe_request_get
     try:
         r = requests.get(url, timeout=timeout)
         r.raise_for_status()
@@ -242,10 +342,8 @@ def safe_request_get(url, timeout=10):
     except requests.RequestException as e:
         return {"_request_error": str(e), "status_code": getattr(e.response, "status_code", None)}
 
-# -------------------------------
-# Função unificada ETA (OSRM)
-# -------------------------------
 def calcular_eta(posicao_atual, paradas, usar_table=True):
+# ... código da função calcular_eta (completa)
     if not posicao_atual or not isinstance(posicao_atual, (list, tuple)) or len(posicao_atual) < 2:
         return {"erro": "Posição atual inválida"}
 
@@ -320,10 +418,11 @@ def calcular_eta(posicao_atual, paradas, usar_table=True):
     return etas
 
 # -------------------------------
-# Endpoint: ônibus com info da linha
+# Endpoints de API (sem alterações)
 # -------------------------------
 @app.route("/api/onibus")
 def get_onibus():
+# ... código da função get_onibus (completa)
     onibus_data = list(db.onibus.find({}, {"_id": 0}))
     enriched = []
 
@@ -333,6 +432,12 @@ def get_onibus():
             continue
 
         prox_parada = db.paradas.find_one({"linha_id": linha["linha_id"]}, {"_id": 0})
+
+        agora = datetime.now()
+        min_previsto = secrets.randbelow(20) + 1       
+        min_atraso = secrets.randbelow(15) - 5         
+        hora_prevista = agora + timedelta(minutes=min_previsto)
+        hora_real = hora_prevista + timedelta(minutes=min_atraso)
 
         enriched.append({
             "onibus_id": onibus["onibus_id"],
@@ -345,18 +450,18 @@ def get_onibus():
             "features": onibus.get("features"),
             "tarifa": f"{float(onibus.get('tarifa', 0)):.2f}",
             "tempo_estimado": None,
-            "prox_parada": prox_parada["name"] if prox_parada else "Não disponível"
+            "prox_parada": prox_parada["name"] if prox_parada else "Não disponível",
+            "hora_prevista": hora_prevista.isoformat(),
+            "hora_real": hora_real.isoformat(),
         })
 
     return jsonify(enriched)
 
-# -------------------------------
-# Endpoint ETA (OSRM)
-# -------------------------------
 eta_cache = {}
 
 @app.route("/api/eta/<onibus_id>")
 def get_eta(onibus_id):
+# ... código da função get_eta (completa)
     try:
         now = time.time()
         cache_entry = eta_cache.get(onibus_id)
@@ -412,9 +517,6 @@ def get_eta(onibus_id):
         print("Erro ETA:", repr(e))
         return jsonify({"erro": "Erro interno ao calcular ETA", "detalhes": str(e)}), 500
 
-# -------------------------------
-# Demais endpoints
-# -------------------------------
 @app.route("/api/linhas")
 def get_linhas():
     data = list(db.linhas.find({}, {"_id": 0}))
@@ -422,16 +524,9 @@ def get_linhas():
 
 @app.route("/api/paradas_linha/<linha_ref>")
 def get_paradas_linha(linha_ref):
-    """
-    Retorna as paradas de uma linha, podendo filtrar por sentido (?sentido=ida|volta).
-    Exemplo:
-       /api/paradas_linha/116?sentido=ida
-       /api/paradas_linha/L116?sentido=volta
-    """
+# ... código da função get_paradas_linha (completa)
+    sentido = request.args.get("sentido", None)
  
-    sentido = request.args.get("sentido", None)  # ida | volta | None
- 
-    # Normalizar referencia da linha
     linha = db.linhas.find_one(
         {
             "$or": [
@@ -449,34 +544,23 @@ def get_paradas_linha(linha_ref):
  
     linha_id = linha["linha_id"]
  
-    # ----------------------------
-    # 1. Se houver sentido declarado
-    # ----------------------------
     if sentido in ("ida", "volta"):
         if "paradas" not in linha or sentido not in linha["paradas"]:
             return jsonify([])
  
-        # Lista ordenada de IDs
         lista_ids = linha["paradas"][sentido]
  
-        # Buscar todas as paradas do sentido
         docs = list(db.paradas.find(
             {"linha_id": linha_id, "sentido": sentido},
             {"_id": 0}
         ))
  
-        # Indexar por parada_id
         mapa_paradas = {p["parada_id"]: p for p in docs}
  
-        # Ordenar na ordem oficial da linha
         resultado = [mapa_paradas[id_] for id_ in lista_ids if id_ in mapa_paradas]
  
         return jsonify(resultado)
  
-    # ----------------------------
-    # 2. Se NÃO houver parâmetro sentido
-    # devolve ida + volta concatenados
-    # ----------------------------
     docs = list(db.paradas.find(
         {"linha_id": linha_id},
         {"_id": 0}
@@ -486,7 +570,7 @@ def get_paradas_linha(linha_ref):
 
 @app.route("/api/linha/<linha_id>")
 def get_linha_by_id(linha_id):
-    """Retorna os dados completos de uma linha (com shape e paradas)."""
+# ... código da função get_linha_by_id (completa)
     try:
         linha = db.linhas.find_one({"linha_id": linha_id}, {"_id": 0})
         if not linha:
@@ -508,16 +592,6 @@ def get_onibus_by_id(onibus_id):
     linha = db.linhas.find_one({"linha_id": onibus["linha_id"]}, {"_id": 0})
     return jsonify({"onibus": onibus, "linha": linha})
 
-@app.route("/dashboard")
-def dashboard():
-    if "usuario" not in session:
-        return redirect(url_for("login"))
-
-    if session.get("mfa_pending"):
-        return redirect(url_for("mfa_verify"))
-
-    return render_template("dashboard.html")
-
 # -------------------------------
 # Cache e headers
 # -------------------------------
@@ -529,7 +603,15 @@ def add_cache_headers(response):
     return response
 
 # -------------------------------
+# Deslogar
+# -------------------------------
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
+
+# -------------------------------
 # Inicialização do servidor
 # -------------------------------
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 5000)), debug=True)
