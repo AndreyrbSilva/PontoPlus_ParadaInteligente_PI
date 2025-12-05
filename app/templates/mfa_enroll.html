@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ativar MFA</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mfa_enroll.css') }}">
+</head>
+<body>
+
+    <div class="about">
+        
+        <div class="box">
+            <h2>Ativar Autenticação MFA</h2>
+
+            <p>Escaneie o QR Code abaixo no Google Authenticator, Authy ou outro app:</p>
+
+            <img src="data:image/png;base64,{{ qr }}" alt="QR Code">
+
+            <form id="mfaForm" action="/mfa/enroll/confirm" method="POST">
+                <input type="hidden" name="token" id="fullToken">
+
+                <div class="inputs-container">
+                    <input class="digit-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" />
+                    <input class="digit-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" />
+                    <input class="digit-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" />
+                    <input class="digit-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" />
+                    <input class="digit-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" />
+                    <input class="digit-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" />
+                </div>
+            </form>
+                        
+        {% if erro %}
+            <p class="erro-msg">{{ erro }}</p>
+        {% endif %}
+        </div>
+
+    </div>
+
+    <script src="{{ url_for('static', filename='js/mfa_enroll.js') }}"></script>
+
+</body>
+</html>

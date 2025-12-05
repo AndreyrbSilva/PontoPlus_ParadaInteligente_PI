@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificação MFA</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mfa_verify.css') }}">
+</head>
+<body>
+
+    <div class="about">
+        
+        <div class="box">
+            <h2>Verificação MFA</h2>
+
+            <p>Digite o código de 6 dígitos gerado pelo seu app autenticador:</p>
+
+            <form id="mfaForm" action="{{ url_for('mfa.verify_post') }}" method="POST">
+                <input type="hidden" name="token" id="fullToken">
+
+                <div class="inputs-container">
+                    <input class="digit-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" />
+                    <input class="digit-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" />
+                    <input class="digit-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" />
+                    <input class="digit-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" />
+                    <input class="digit-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" />
+                    <input class="digit-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" />
+                </div>
+                
+                </form>
+                        
+            {% if erro %}
+                <p class="erro-msg">{{ erro }}</p>
+            {% endif %}
+        </div>
+
+    </div>
+
+    <script src="{{ url_for('static', filename='js/mfa_verify.js') }}"></script>
+
+</body>
+</html>
