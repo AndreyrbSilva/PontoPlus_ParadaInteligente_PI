@@ -28,8 +28,8 @@ class Config:
     # -----------------------------
     UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER", "uploads/profile_data")
     ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
+    CLOUDINARY_URL = os.getenv("CLOUDINARY_URL")
 
-    # Garante que a pasta existe
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
     # -----------------------------

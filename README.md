@@ -1,5 +1,7 @@
 # 🚌 PontoPlus — Sistema de Parada Inteligente
 
+> **🔗 Demonstração Online**: [https://pontoplus-qfq2.onrender.com/](https://pontoplus-qfq2.onrender.com/)
+
 O PontoPlus é um protótipo em desenvolvimento de parada inteligente IoT, criado para simular o funcionamento de um sistema de transporte público conectado.
 Ele permite visualizar o tempo estimado de chegada (ETA) dos ônibus em tempo real, integrando:
 
@@ -116,36 +118,82 @@ Registra os sensores físicos ou simulados.
 
 ---
 
-## 🚀 Instalação e Execução
+## 🚀 Instalação e Execução Local
 
 ### 🔧 Pré-requisitos
-- Python 3.10+  
-- Conta no MongoDB Atlas  
-- Variável de ambiente `MONGO_URI` configurada  
+- Python 3.10+
+- Conta no MongoDB Atlas
+- Git instalado
 
-### 🧱 Passos de instalação
+### 🧱 Passo a passo
 
-```bash
-# 1. Clone o repositório
-git clone https://github.com/AndreyrbSilva/PontoPlus_ParadaInteligente_PI.git
-cd PontoPlus_ParadaInteligente_PI/PontoPlus_ParadaInteligente_PI
+1. **Clone o repositório**
+   ```bash
+   git clone https://github.com/AndreyrbSilva/PontoPlus_ParadaInteligente_PI.git
+   cd PontoPlus_ParadaInteligente_PI
+   ```
 
-# 2. Crie um ambiente virtual
-python -m venv venv
-source venv/bin/activate  # (Linux/Mac)
-venv\Scripts\activate     # (Windows)
+2. **Crie e ative o ambiente virtual**
+   ```bash
+   # Linux/Mac
+   python3 -m venv venv
+   source venv/bin/activate
 
-# 3. Instale as dependências
-pip install -r requirements.txt
+   # Windows
+   python -m venv venv
+   venv\Scripts\activate
+   ```
 
-# 4. Configure as variáveis de ambiente
-export MONGO_URI="sua_string_de_conexao_do_mongodb"
+3. **Instale as dependências**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-# 5. Execute o servidor Flask
-python app.py
+4. **Configuração (.env)**
+   Crie um arquivo `.env` na raiz do projeto e configure as variáveis:
 
-# O servidor iniciará em: http://127.0.0.1:5000
-```
+   ```bash
+   # Crie o arquivo
+   cp .env.example .env
+   ```
+
+   **Variáveis Obrigatórias:**
+   
+   | Variável | Descrição | Exemplo |
+   |----------|-----------|---------|
+   | `MONGO_URI` | String de conexão do MongoDB Atlas | `mongodb+srv://user:pass@cluster.mongodb.net/pontoplus` |
+   | `SECRET_KEY` | Chave secreta para sessões Flask | `sua_chave_super_secreta` |
+   | `CLOUDINARY_URL` | URL de conexão do Cloudinary | `cloudinary://1234:secret@cloudname` |
+
+   **Variáveis Opcionais:**
+
+   | Variável | Descrição | Padrão |
+   |----------|-----------|---------|
+   | `OSRM_HOST` | URL do serviço de rotas | `http://localhost:5000` |
+   | `OSRM_TABLE_MAX` | Limite da tabela OSRM | `80` |
+   | `DEBUG` | Modo debug do Flask | `false` |
+   | `PORT` | Porta do servidor | `5000` |
+
+5. **Execute a aplicação**
+   ```bash
+   python run.py
+   ```
+   Acesse: [http://127.0.0.1:5000](http://127.0.0.1:5000)
+
+---
+
+## ☁️ Deploy no Render
+
+Este projeto já está configurado para deploy no **Render** via arquivo `render.yaml`.
+
+1. Crie uma conta no [Render](https://render.com/).
+2. Conecte sua conta do GitHub.
+3. Crie um novo **Web Service** ou **Blueprint** selecionando este repositório.
+4. O Render detectará automaticamente o arquivo `render.yaml`.
+5. **Importante**: Adicione as variáveis de ambiente (`MONGO_URI`, etc) no painel do Render durante a criação.
+
+> [!WARNING]
+> **Atenção aos Uploads**: O Render (plano gratuito) não possui disco persistente. Arquivos de upload (imagens de perfil) serão perdidos a cada deploy ou reinício do servidor. Para produção, configure um serviço de armazenamento externo (AWS S3, Google Cloud Storage, etc).
 
 ### 🔗 Endpoints da API
 

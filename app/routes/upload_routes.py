@@ -1,8 +1,6 @@
-from flask import Blueprint, request, current_app, send_file, jsonify
+from flask import Blueprint, request, current_app, redirect, jsonify
 from app.services.upload_service import UploadService
 from app.services.session_service import SessionService
-from bson.objectid import ObjectId
-import os
 
 upload_bp = Blueprint("upload", __name__)
 
@@ -31,9 +29,9 @@ def upload_avatar():
 @upload_bp.route("/avatar/<user_id>")
 def get_avatar(user_id):
     upload_service: UploadService = current_app.extensions["upload_service"]
-    path = upload_service.get_avatar_path(user_id)
+    url = upload_service.get_avatar_path(user_id)
 
-    if not path or not os.path.exists(path):
+    if not url:
         return jsonify({"ok": False, "error": "not_found"}), 404
 
-    return send_file(path)
+    return redirect(url)
