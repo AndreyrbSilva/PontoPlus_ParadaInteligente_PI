@@ -18,7 +18,7 @@
 
             <p>Digite o código de 6 dígitos gerado pelo seu app autenticador:</p>
 
-            <form id="mfaForm" action="/mfa" method="POST">
+            <form id="mfaForm" action="{{ url_for('mfa.verify_post') }}" method="POST">
                 <input type="hidden" name="token" id="fullToken">
 
                 <div class="inputs-container">

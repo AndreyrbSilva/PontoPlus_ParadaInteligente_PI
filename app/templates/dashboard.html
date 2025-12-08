@@ -25,7 +25,7 @@
     <!-- BARRA LATERAL (SIDEBAR) -->
     <aside class="sidebar">
         <div class="profile-section">
-            <form id="avatarForm" action="{{ url_for('upload_avatar') }}" method="POST" enctype="multipart/form-data">
+            <form id="avatarForm" action="{{ url_for('upload.upload_avatar') }}" method="POST" enctype="multipart/form-data">
                 <input type="file" name="file" id="avatarInput" style="display: none;" onchange="document.getElementById('avatarForm').submit()">
             </form>
             <div class="profile-img" onclick="document.getElementById('avatarInput').click()" title="Alterar foto de perfil">
@@ -33,7 +33,7 @@
                 {% if session.get('profile_pic') %}
                     <!-- CASO 1: Usuário tem foto cadastrada -->
                     <!-- O 'onerror' é o segredo: se a imagem falhar (404), ele carrega a default.png automaticamente -->
-                    <img src="{{ url_for('get_avatar', filename=session['profile_pic'], v=cache_buster) }}" 
+                    <img src="{{ url_for('upload.get_avatar', filename=session['profile_pic']) }}" 
                          onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/default.png') }}';"
                          alt="Perfil" 
                          style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
@@ -78,7 +78,7 @@
                     </li>
                     
                     <li class="submenu-item">
-                        <a href="#" onclick="confirmarLogout()" class="logout-link">
+                        <a href="{{ url_for('auth.logout') }}" onclick="confirmarLogout(event)" class="logout-link">
                             <i class="fa-solid fa-right-from-bracket"></i> Deslogar
                         </a>
                     </li>
