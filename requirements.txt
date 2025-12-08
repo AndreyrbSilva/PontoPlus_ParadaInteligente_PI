@@ -10,3 +10,4 @@ Pillow==10.4.0
 werkzeug==3.0.4
 gunicorn
 python-dotenv
+cloudinary

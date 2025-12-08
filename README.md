@@ -154,7 +154,7 @@ Registra os sensores físicos ou simulados.
 
    ```bash
    # Crie o arquivo
-   cp .env.example .env  # (se houver) ou crie manualmente
+   cp .env.example .env
    ```
 
    **Variáveis Obrigatórias:**
@@ -163,6 +163,7 @@ Registra os sensores físicos ou simulados.
    |----------|-----------|---------|
    | `MONGO_URI` | String de conexão do MongoDB Atlas | `mongodb+srv://user:pass@cluster.mongodb.net/pontoplus` |
    | `SECRET_KEY` | Chave secreta para sessões Flask | `sua_chave_super_secreta` |
+   | `CLOUDINARY_URL` | URL de conexão do Cloudinary | `cloudinary://1234:secret@cloudname` |
 
    **Variáveis Opcionais:**
 
