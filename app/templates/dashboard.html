@@ -33,9 +33,10 @@
                 {% if session.get('profile_pic') %}
                     <!-- CASO 1: Usuário tem foto cadastrada -->
                     <!-- O 'onerror' é o segredo: se a imagem falhar (404), ele carrega a default.png automaticamente -->
-                    <img src="{{ url_for('upload.get_avatar', filename=session['profile_pic']) }}" 
-                         onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/default.png') }}';"
-                         alt="Perfil" 
+                    <img id="profileImage" 
+                         src="{{ url_for('upload.get_avatar', filename=session['profile_pic']) }}" 
+                         onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/default.png') }}';" 
+                         alt="Perfil"
                          style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
                 {% else %}
                     <!-- CASO 2: Usuário novo (sem foto) -->

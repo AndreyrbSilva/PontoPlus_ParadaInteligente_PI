@@ -299,3 +299,34 @@ toggleSwitch.addEventListener('change', () => {
     }
 });
 
+async function uploadAvatar() {
+    const fileInput = document.getElementById('avatarInput');
+    const file = fileInput.files[0];
+
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const profileImg = document.getElementById('profileImage');
+        const originalSrc = profileImg.src;
+
+        const response = await fetch('/avatar', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.ok) {
+            profileImg.src = data.filename;
+        } else {
+            profileImg.src = originalSrc;
+        }
+    } catch (e) {
+        console.error(e);
+    }
+
+    fileInput.value = '';
+}
