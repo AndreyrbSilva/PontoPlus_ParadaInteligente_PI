@@ -25,8 +25,8 @@
     <!-- BARRA LATERAL (SIDEBAR) -->
     <aside class="sidebar">
         <div class="profile-section">
-            <form id="avatarForm" action="{{ url_for('upload.upload_avatar') }}" method="POST" enctype="multipart/form-data">
-                <input type="file" name="file" id="avatarInput" style="display: none;" onchange="document.getElementById('avatarForm').submit()">
+            <form id="avatarForm" enctype="multipart/form-data">
+                <input type="file" name="file" id="avatarInput" style="display: none;" onchange="uploadAvatar()">
             </form>
             <div class="profile-img" onclick="document.getElementById('avatarInput').click()" title="Alterar foto de perfil">
                 
